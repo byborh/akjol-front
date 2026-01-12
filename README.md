@@ -1,73 +1,25 @@
-# React + TypeScript + Vite
+**Problème** :
+Les étudiants, notamment les jeunes, ne savent pas toujours quoi faire comme étude ! Et, à cause de cette problématique, ils sont aptes à faire des choix de carrière désastreux. Certains osent tout de même changer de cursus pour faire ce qu’ils aiment pour de vrai. Mais ça peut prendre du temps pour la réflexion et surtout ils vont perdre du temps. Certains n’osent pas changer de cursus et vont continuer leurs études dûs à plusieurs raisons ! Tout ça peut être évité si on fait de meilleurs choix de carrière !
+Et celà est dû aussi à un médiocre accompagnement des parents et des collèges/lycées. Si un outil existait pour aider toutes ces personnes qui ont besoin d’éclaircissement sur le futur ! Connaître/Découvrir les métiers plus concrètement, afin de se décider plus simplement.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+**Solution**:
+Il faut créer un outil qui permet de résoudre cette problématique, pour que les étudiants/les anciens en reconversion puissent connaître ce qu’ils peuvent effectuer comme études à partir de leur situation !
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+AkJol (Chemin Blanc)- Une plateforme permettant de découvrir les métiers, les poursuite d’études effectuable pour la situation individuelle de la personne !Cette dernière permet de montrer/simuler la personne mais dans la vie “numérique” si il fait un tel choix ou un autre. Ici, les étudiants pourront enfin faire de meilleurs choix et voir les conséquences de leur choix avant de les effectuer. AkJol contiendra aussi des écoles, niveaux d’études différents possible. Pour avoir tous types d’écoles/université/Lycée dans une même place pour connaître ce que ça fait ! [à développer cette dernière phrase, je n’ai pas réussi à bien m'exprimer].
 
-## React Compiler
+**Exemple cas précis**:
+Léa est en deuxième année de BTS SIO SISR à Paris. Elle prépare ces contrôles de fin d’études depuis janvier déjà… Et le parcoursup est déjà ouvert. Mais elle ne savait pas que parcoursup était pour les études après le BAC. Tout de même, ce n’était pas le problème le plus important à résoudre. Mais de faire un choix de poursuite d'études après ces études ! Elle a entendu parler des licences, des écoles privées, prépas pour faire une école d’ingénieur. mais ne sait toujours pas quoi décider.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Dans cette situation, AkJol vient en aide pour Léa. Léa, à présent au courant de Akjol, pourra voir comment se passe la vie après son BTS. Elle voit à présent les listes des universités/écoles où elle pourra postuler, avec une simulation du job qu’elle effectuera avec ce métier. Plus besoin de sacrifier des weekends et des week-ends à chercher les études qu’on pourra faire (toujours conseillé de faire tout de même -> Akjol permet juste de faciliter ce choix de poursuite d’étude). à présent, Léa voit claire de ce qu’elle pourra faire après ces études: elle voulait toujours faire du réseaux, donc elle a choisi d’aller dans une licence pro en réseau.
 
-## Expanding the ESLint configuration
+Certes, le cas précis a l’air de ne pas vraiment aider, mais pour les plus jeunes comme collègiens, ça permet de visualiser encore plus facilement leur futur.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Minimum Viable Product**:
+Il faut juste créer différents choix possibles avec tous types de poursuite d’étude possible à partir du lycée vers un doctorat ! Et pouvoir les simuler… L'étudiant pourra choisir une poursuite d’étude X et pourra voir ce qu’il peut faire ensuite et comment (Parcoursup, Postuler en présentiel si école prv ou autre etc.)
+→ Faire ce que je viens de citer que pour le études en technologies/informatiques
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Feedback de l’IA**:
+Analyse du potentiel et de la proposition de valeur Le projet AkJol identifie avec justesse un "pain point" critique du système éducatif actuel : l'anxiété liée à l'orientation et le manque de visibilité concrète sur les débouchés professionnels. La proposition de valeur, qui consiste à passer d'un simple catalogue de formations (modèle passif existant) à un outil de "simulation de carrière" (modèle actif et projectif), constitue un avantage concurrentiel fort. En permettant à l'utilisateur de visualiser les conséquences tangibles de ses choix (style de vie, salaire, employabilité) plutôt que de simplement lister des cursus, AkJol répond au besoin de réassurance et de concrétisation exprimé par la génération cible.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Recommandations stratégiques pour le lancement Pour garantir la faisabilité technique et la pertinence économique lors de la phase de lancement (0 à 1), il est impératif de resserrer le périmètre du Minimum Viable Product (MVP). Une approche verticale, ciblant initialement un secteur unique (comme la Tech/Informatique) plutôt que l'intégralité du paysage éducatif, permettra de valider le modèle de données et l'expérience utilisateur (UX) avec des ressources maîtrisées. Enfin, la pérennité du projet reposera sur la définition d'un modèle économique éthique : la confiance des utilisateurs étant le capital le plus précieux, la neutralité des recommandations doit être garantie, évitant tout conflit d'intérêts avec les établissements partenaires.
