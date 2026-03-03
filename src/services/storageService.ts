@@ -1,6 +1,7 @@
 import type { LifeSession } from '../types';
 
 const STORAGE_KEY = 'akjol_life_sessions';
+const ACTIVE_SESSION_KEY = 'akjol_active_session_id';
 
 function safeParseSessions(raw: string | null): LifeSession[] {
   if (!raw) return [];
@@ -52,5 +53,17 @@ export const StorageService = {
     );
 
     persistSessions(sessions);
+  },
+
+  getActiveSessionId(): string | null {
+    return localStorage.getItem(ACTIVE_SESSION_KEY);
+  },
+
+  setActiveSessionId(id: string | null): void {
+    if (id === null) {
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } else {
+      localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    }
   }
 };

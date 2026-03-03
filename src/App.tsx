@@ -58,13 +58,24 @@ const AkJolApp = () => {
     }
 
     setSessions(storedSessions);
-    setActiveSessionId(storedSessions[0].id);
+
+    // Restaurer la dernière session active si elle existe encore
+    const lastActiveId = StorageService.getActiveSessionId();
+    const isValidId = lastActiveId && storedSessions.some((s) => s.id === lastActiveId);
+    setActiveSessionId(isValidId ? lastActiveId : storedSessions[0].id);
   }, []);
 
   useEffect(() => {
     if (!activeSession) return;
     setView(activeSession.path.length > 0 || activeSession.startingNodeId ? 'explore' : 'home');
   }, [activeSession]);
+
+  // Persister l'ID de la session active
+  useEffect(() => {
+    if (activeSessionId) {
+      StorageService.setActiveSessionId(activeSessionId);
+    }
+  }, [activeSessionId]);
 
   const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
