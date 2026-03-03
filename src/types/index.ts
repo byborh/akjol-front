@@ -14,6 +14,7 @@ export interface Node {
   metadata: Record<string, any>;
   color?: string; // Gradient Tailwind: "from-blue-500 to-blue-600"
   icon?: string; // Emoji ou lucide-react name
+  requirements?: NodeRequirements; // Conditions pour accéder à ce nœud
 }
 
 export interface Edge {
@@ -21,6 +22,31 @@ export interface Edge {
   source_id: number;
   target_id: number;
   requirements: Record<string, any>;
+}
+
+/**
+ * Configuration des requirements (conditions d'accès à un node)
+ */
+export interface NodeRequirements {
+  math?: number; // Niveau minimum requis en maths (0-20)
+  french?: number; // Français
+  science?: number; // Sciences/Physique-Chimie
+  average?: number; // Moyenne générale minimale
+  difficulty?: 'Easy' | 'Medium' | 'Hard'; // Difficulté globale
+}
+
+/**
+ * Stats utilisateur (profil étudiant)
+ * Basé sur ses résultats actuels
+ */
+export interface UserStats {
+  id: string;
+  name: string;
+  math: number; // 0-20
+  french: number; // 0-20
+  science: number; // 0-20
+  average: number; // 0-20
+  level: 'Débutant' | 'Moyen' | 'Avancé';
 }
 
 /**
@@ -39,5 +65,6 @@ export interface ExploreState {
 export interface PathwayStep {
   node: Node;
   requirements?: Record<string, any>;
-  isAccessible: boolean; // Peut-on y accéder ? (logic checked)
+  successProbability: number; // 0-1 (0% à 100%)
+  riskLevel: 'safe' | 'medium' | 'risky'; // Basé sur la probabilité
 }

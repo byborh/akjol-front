@@ -65,7 +65,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* HERO SECTION */}
       <motion.div
-        className="relative py-20 px-6 text-center"
+        className="relative py-12 md:py-20 px-4 md:px-6 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -74,15 +74,15 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
 
         <div className="relative z-10">
           <motion.div
-            className="flex justify-center mb-6"
+            className="flex justify-center mb-4 md:mb-6"
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <Sparkles size={48} className="text-yellow-400" />
+            <Sparkles size={40} className="md:w-12 md:h-12 text-yellow-400" />
           </motion.div>
 
           <motion.h1
-            className="text-5xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
+            className="text-3xl md:text-5xl lg:text-6xl font-black mb-3 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
@@ -91,13 +91,13 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto"
+            className="text-base md:text-lg lg:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
           >
             Le Moteur de Simulation de Vie. Où êtes-vous maintenant ?
-            <span className="block text-sm text-gray-400 mt-2">
+            <span className="block text-xs md:text-sm text-gray-400 mt-2">
               Sélectionnez votre point de départ pour explorer tous les chemins possibles
             </span>
           </motion.p>
@@ -106,56 +106,58 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
 
       {/* SEARCH BAR */}
       <motion.div
-        className="px-6 mb-12 max-w-4xl mx-auto"
+        className="px-4 md:px-6 mb-10 md:mb-12 max-w-4xl mx-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
         <div className="relative">
           <motion.div
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400"
             animate={{ rotate: searchTerm ? 0 : 360 }}
             transition={{ duration: searchTerm ? 0.2 : 2, repeat: searchTerm ? 0 : Infinity }}
           >
-            <Search size={20} />
+            <Search size={18} className="md:w-5 md:h-5" />
           </motion.div>
           <motion.input
             type="text"
-            placeholder="Cherchez votre situation (ex: Bac Général, BTS, Licence...)"
+            placeholder="Cherchez votre situation (ex: Bac, BTS, Licence...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-800 border-2 border-gray-700 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition"
+            className="w-full bg-gray-800 border-2 border-gray-700 rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition"
             whileFocus={{ scale: 1.02 }}
           />
         </div>
       </motion.div>
 
       {/* NODES GRID BY TYPE */}
-      <div className="px-6 pb-20 max-w-7xl mx-auto">
+      <div className="px-4 md:px-6 pb-20 md:pb-20 max-w-7xl mx-auto">
         {Object.entries(nodesByType).map(([type, nodes]) => (
           <motion.div
             key={type}
-            className="mb-16"
+            className="mb-12 md:mb-16"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
             variants={containerVariants}
           >
-            <motion.h2 className="text-2xl font-bold mb-6 flex items-center gap-3" variants={itemVariants}>
+            <motion.h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-3" variants={itemVariants}>
               <motion.div
                 className="h-1 w-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
                 initial={{ scaleX: 0 }}
                 whileInView={{ scaleX: 1 }}
                 transition={{ duration: 0.6 }}
               />
-              {type === 'BAC' && '🎓 Niveau Bac'}
-              {type === 'ETUDE_SUP' && '📚 Études Supérieures'}
-              {type === 'METIER' && '🚀 Métiers'}
-              {type === 'CERTIF' && '🏅 Certifications'}
+              <span>
+                {type === 'BAC' && '🎓 Niveau Bac'}
+                {type === 'ETUDE_SUP' && '📚 Études Supérieures'}
+                {type === 'METIER' && '🚀 Métiers'}
+                {type === 'CERTIF' && '🏅 Certifications'}
+              </span>
             </motion.h2>
 
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
               variants={containerVariants}
             >
               {nodes.map((node, idx) => (
@@ -181,13 +183,13 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
 
         {filteredNodes.length === 0 && (
           <motion.div
-            className="text-center py-20"
+            className="text-center py-16 md:py-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <p className="text-gray-400 text-lg">Aucun résultat pour "{searchTerm}"</p>
-            <p className="text-gray-500 text-sm mt-2">Essayez une autre recherche</p>
+            <p className="text-gray-400 text-base md:text-lg">Aucun résultat pour "{searchTerm}"</p>
+            <p className="text-gray-500 text-xs md:text-sm mt-2">Essayez une autre recherche</p>
           </motion.div>
         )}
       </div>

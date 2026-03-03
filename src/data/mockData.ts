@@ -8,27 +8,7 @@
  * - Metadata JSONB : Flexibilité complète par type
  */
 
-// ==================== TYPES ====================
-export type NodeType = 'BAC' | 'ETUDE_SUP' | 'METIER' | 'CERTIF';
-
-export interface Node {
-  id: number;
-  type: NodeType;
-  title: string;
-  slug: string;
-  description: string;
-  // JSONB : flexibilité totale selon le type
-  metadata: Record<string, any>;
-  color?: string; // Pour le frontend : couleur de la card
-  icon?: string; // emoji ou nom d'icône lucide-react
-}
-
-export interface Edge {
-  id: number;
-  source_id: number; // D'où je viens
-  target_id: number; // Où je vais
-  requirements: Record<string, any>; // Conditions pour passer (dossier, concours, etc)
-}
+import type { Node, Edge, UserStats } from '../types';
 
 // ==================== NODES DATA ====================
 export const NODES: Node[] = [
@@ -78,6 +58,12 @@ export const NODES: Node[] = [
       avg_salary_junior: 28000,
       job_fit: ['Administrateur Réseaux', 'Support Informatique']
     },
+    requirements: {
+      math: 11,
+      science: 10,
+      average: 11,
+      difficulty: 'Medium'
+    },
     color: 'from-green-400 to-green-500',
     icon: '🌐'
   },
@@ -93,6 +79,12 @@ export const NODES: Node[] = [
       alternance_possible: true,
       avg_salary_junior: 32000,
       job_fit: ['Développeur Web', 'Développeur Fullstack', 'Dev Mobile']
+    },
+    requirements: {
+      math: 12,
+      science: 11,
+      average: 12,
+      difficulty: 'Medium'
     },
     color: 'from-purple-400 to-purple-500',
     icon: '💻'
@@ -110,6 +102,12 @@ export const NODES: Node[] = [
       avg_salary_junior: 30000,
       job_fit: ['Développeur', 'Chef de Projet']
     },
+    requirements: {
+      math: 13,
+      science: 12,
+      average: 13,
+      difficulty: 'Medium'
+    },
     color: 'from-indigo-400 to-indigo-500',
     icon: '📚'
   },
@@ -126,6 +124,11 @@ export const NODES: Node[] = [
       intensity: 'Très Haut',
       avg_salary_junior: 35000,
       job_fit: ['Développeur Web', 'Startup Cofounder']
+    },
+    requirements: {
+      math: 10,
+      average: 10,
+      difficulty: 'Hard'
     },
     color: 'from-pink-400 to-pink-500',
     icon: '🚀'
@@ -145,6 +148,11 @@ export const NODES: Node[] = [
       avg_salary_junior: 33000,
       job_fit: ['Développeur Senior', 'Tech Lead']
     },
+    requirements: {
+      math: 12,
+      average: 12,
+      difficulty: 'Medium'
+    },
     color: 'from-cyan-400 to-cyan-500',
     icon: '🎯'
   },
@@ -160,6 +168,12 @@ export const NODES: Node[] = [
       level: 'BAC+5',
       avg_salary_junior: 38000,
       job_fit: ['Chef de Projet', 'Architect', 'CTO']
+    },
+    requirements: {
+      math: 14,
+      science: 13,
+      average: 14,
+      difficulty: 'Hard'
     },
     color: 'from-rose-400 to-rose-500',
     icon: '👑'
@@ -180,6 +194,11 @@ export const NODES: Node[] = [
       technologies: ['JavaScript', 'React', 'Node.js', 'PostgreSQL'],
       stress_level: 'Medium'
     },
+    requirements: {
+      math: 11,
+      average: 11,
+      difficulty: 'Medium'
+    },
     color: 'from-yellow-400 to-yellow-500',
     icon: '🚀'
   },
@@ -196,6 +215,12 @@ export const NODES: Node[] = [
       demand: 'High',
       technologies: ['Linux', 'Windows Server', 'Networking', 'Cloud'],
       stress_level: 'High'
+    },
+    requirements: {
+      math: 10,
+      science: 10,
+      average: 10,
+      difficulty: 'Medium'
     },
     color: 'from-teal-400 to-teal-500',
     icon: '🛡️'
@@ -253,3 +278,19 @@ export function getEdgeRequirements(sourceId: number, targetId: number) {
 
 // Pour backward compat avec App.tsx existant
 export const DATA_NODES = NODES;
+
+// ==================== USER STATS DATA ====================
+/**
+ * Profil utilisateur exemple
+ * En production, ce serait chargé depuis une API backend
+ * Stats actuelles d'un étudiant lycéen
+ */
+export const MOCK_USER_STATS: UserStats = {
+  id: 'user-001',
+  name: 'Alexandre Dupont',
+  math: 14, // Bon en maths
+  french: 13, // Moyen en français
+  science: 12, // Moyen en sciences
+  average: 13, // Moyenne générale 13/20
+  level: 'Avancé'
+};
