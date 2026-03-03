@@ -1,0 +1,14 @@
+{
+  "name": "Testing Configuration (Optional)",
+  "description": "Pour activer les tests unitaires, installez vitest",
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
+  }
+}

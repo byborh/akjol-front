@@ -1,11 +1,16 @@
 /**
  * src/services/probabilityService.ts
  *
- * Service de calcul de probabilité de succès pour chaque chemin d'orientation
- * Utilise une logique exponentielle pour les pénalités
+ * Service Layer - Probability Calculation
+ * Délègue la logique métier au engine/rules (Clean Architecture)
+ * 
+ * @deprecated Use engine/rules directly for testability
  */
 
 import type { UserStats, NodeRequirements } from '../types';
+import { userStatsToProfile } from '../engine/adapters/profileAdapter';
+import { calculateSuccessProbability as calculateProbability } from '../engine/rules/probabilityRules';
+import type { NodeRequirements as EngineRequirements } from '../engine/types/userProfile';
 
 export interface SuccessProbabilityResult {
   probability: number; // 0-1 (0% à 100%)
@@ -21,114 +26,35 @@ export interface SuccessProbabilityResult {
 
 /**
  * Calcule la probabilité de succès pour accéder à un nœud
- * Logique:
- * - Si stats > requirements: 100%
- * - Si stats < requirements: applique une pénalité exponentielle
- *   - 0.5 point en moins: -5%
- *   - 1 point en moins: -10%
- *   - 2 points en moins: -30% (légèrement exponentiel)
- *   - 3+ points en moins: -70%+ (très pénalisé)
+ * 
+ * @deprecated Use engine/rules/probabilityRules directly
+ * This function is kept for backward compatibility
+ * 
+ * Logique déléguée au engine/rules (testable unitairement)
  */
 export function calculateSuccessProbability(
   userStats: UserStats,
   nodeRequirements?: NodeRequirements
 ): SuccessProbabilityResult {
-  // Si aucun requirement, c'est 100% accessible
-  if (!nodeRequirements) {
-    return {
-      probability: 1,
-      riskLevel: 'safe',
-      details: {}
-    };
-  }
+  // Convert legacy types to Clean Architecture types
+  const userProfile = userStatsToProfile(userStats);
+  const engineRequirements = nodeRequirements as EngineRequirements | undefined;
 
-  const details: SuccessProbabilityResult['details'] = {};
-  let totalPenalty = 0;
+  // Delegate to business rules (pure functions)
+  const result = calculateProbability(userProfile, engineRequirements);
 
-  // --- Vérification Maths ---
-  if (nodeRequirements.math !== undefined) {
-    const gap = nodeRequirements.math - userStats.math;
-    details.mathGap = gap;
-
-    if (gap > 0) {
-      // Pénalité exponentielle pour le gap
-      const penalty = calculateExponentialPenalty(gap);
-      totalPenalty += penalty * 0.25; // Poids: 25%
-    }
-  }
-
-  // --- Vérification Français ---
-  if (nodeRequirements.french !== undefined) {
-    const gap = nodeRequirements.french - userStats.french;
-    details.frenchGap = gap;
-
-    if (gap > 0) {
-      const penalty = calculateExponentialPenalty(gap);
-      totalPenalty += penalty * 0.25; // Poids: 25%
-    }
-  }
-
-  // --- Vérification Sciences ---
-  if (nodeRequirements.science !== undefined) {
-    const gap = nodeRequirements.science - userStats.science;
-    details.scienceGap = gap;
-
-    if (gap > 0) {
-      const penalty = calculateExponentialPenalty(gap);
-      totalPenalty += penalty * 0.25; // Poids: 25%
-    }
-  }
-
-  // --- Vérification Moyenne générale ---
-  if (nodeRequirements.average !== undefined) {
-    const gap = nodeRequirements.average - userStats.average;
-    details.averageGap = gap;
-
-    if (gap > 0) {
-      const penalty = calculateExponentialPenalty(gap);
-      totalPenalty += penalty * 0.25; // Poids: 25%
-    }
-  }
-
-  details.totalPenalty = totalPenalty;
-
-  // Probabilité finale: 1 - totalPenalty (min 0, max 1)
-  const probability = Math.max(0, Math.min(1, 1 - totalPenalty));
-
-  // Déterminer le niveau de risque
-  const riskLevel: 'safe' | 'medium' | 'risky' = getRiskLevel(probability);
-
+  // Convert back to legacy format
   return {
-    probability,
-    riskLevel,
-    details
+    probability: result.probability,
+    riskLevel: result.riskLevel,
+    details: {
+      mathGap: result.details.mathGap,
+      frenchGap: result.details.frenchGap,
+      scienceGap: result.details.scienceGap,
+      averageGap: result.details.averageGap,
+      totalPenalty: result.details.totalPenalty
+    }
   };
-}
-
-/**
- * Calcule la pénalité exponentielle pour un gap de points
- * Formule: 0.1 * (1 + gap^1.5) pour une croissance exponentielle douce
- *
- * Exemples:
- * - gap = 0.5: penalty ≈ 0.05 (5%)
- * - gap = 1: penalty ≈ 0.10 (10%)
- * - gap = 2: penalty ≈ 0.30 (30%)
- * - gap = 3: penalty ≈ 0.55 (55%)
- * - gap = 4: penalty ≈ 0.85 (85%)
- */
-function calculateExponentialPenalty(gap: number): number {
-  // Utilise une courbe exponentielle douce
-  const penalty = 0.1 * Math.pow(gap, 1.5);
-  return Math.min(1, penalty); // Cap à 100% de pénalité
-}
-
-/**
- * Détermine le niveau de risque basé sur la probabilité
- */
-function getRiskLevel(probability: number): 'safe' | 'medium' | 'risky' {
-  if (probability >= 0.75) return 'safe';
-  if (probability >= 0.4) return 'medium';
-  return 'risky';
 }
 
 /**
@@ -142,11 +68,21 @@ export function formatProbability(probability: number): string {
  * Helper: Retourne le ratio d'accessibilité (pour affichage)
  */
 export function getProbabilityMetrics(probability: number) {
+  const riskLevel = determineRiskLevel(probability);
   return {
     percentage: Math.round(probability * 100),
-    riskLevel: getRiskLevel(probability),
-    color: getColorForRiskLevel(getRiskLevel(probability))
+    riskLevel,
+    color: getColorForRiskLevel(riskLevel)
   };
+}
+
+/**
+ * Helper: Détermine le niveau de risque (réimporté depuis engine)
+ */
+function determineRiskLevel(probability: number): 'safe' | 'medium' | 'risky' {
+  if (probability >= 0.75) return 'safe';
+  if (probability >= 0.4) return 'medium';
+  return 'risky';
 }
 
 /**

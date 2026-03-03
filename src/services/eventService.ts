@@ -1,12 +1,14 @@
 /**
  * src/services/eventService.ts
  *
- * Service de gestion des événements aléatoires (RNG)
- * Inspiré des mécaniques de jeux roguelike
+ * Service Layer - RNG Event Management
+ * Délègue la logique de calcul au engine/rules (Clean Architecture)
  */
 
 import type { RandomEvent, UserStats, EventEffect } from '../types';
 import { EVENTS } from '../data/eventsData';
+import { userStatsToProfile, profileToUserStats, eventEffectToProfileEffect } from '../engine/adapters/profileAdapter';
+import { calculateOutcome } from '../engine/rules/outcomeRules';
 
 /**
  * Lance un dé (1-100) et détermine si un événement se déclenche
@@ -35,41 +37,23 @@ export function rollForEvent(): RandomEvent | null {
 /**
  * Applique les effets d'un événement sur les stats utilisateur
  * Retourne les nouvelles stats modifiées
+ * 
+ * @deprecated Use engine/rules/calculateOutcome directly for testability
+ * This function delegates to the pure business rules
  */
 export function applyEventEffects(
   userStats: UserStats,
   effect: EventEffect
 ): UserStats {
-  const newStats = { ...userStats };
+  // Convert to Clean Architecture types
+  const userProfile = userStatsToProfile(userStats);
+  const profileEffect = eventEffectToProfileEffect(effect);
 
-  // Skill boost général (affecte toutes les matières)
-  if (effect.skill_boost !== undefined) {
-    newStats.math = Math.max(0, Math.min(20, newStats.math + effect.skill_boost));
-    newStats.french = Math.max(0, Math.min(20, newStats.french + effect.skill_boost));
-    newStats.science = Math.max(0, Math.min(20, newStats.science + effect.skill_boost));
-    newStats.average = Math.max(0, Math.min(20, newStats.average + effect.skill_boost));
-  }
+  // Delegate to pure business rules (testable!)
+  const updatedProfile = calculateOutcome(userProfile, profileEffect);
 
-  // Modifications spécifiques par matière
-  if (effect.math !== undefined) {
-    newStats.math = Math.max(0, Math.min(20, newStats.math + effect.math));
-  }
-  if (effect.french !== undefined) {
-    newStats.french = Math.max(0, Math.min(20, newStats.french + effect.french));
-  }
-  if (effect.science !== undefined) {
-    newStats.science = Math.max(0, Math.min(20, newStats.science + effect.science));
-  }
-  if (effect.average !== undefined) {
-    newStats.average = Math.max(0, Math.min(20, newStats.average + effect.average));
-  }
-
-  // Recalculer la moyenne générale basée sur les matières
-  newStats.average = Math.round(
-    ((newStats.math + newStats.french + newStats.science) / 3) * 10
-  ) / 10;
-
-  return newStats;
+  // Convert back to legacy format
+  return profileToUserStats(updatedProfile);
 }
 
 /**
