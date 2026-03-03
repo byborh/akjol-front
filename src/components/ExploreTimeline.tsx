@@ -8,10 +8,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
-import type { Node, ExploreState, UserStats } from '../types';
+import type { Node, ExploreState, UserStats, RandomEvent } from '../types';
 import { NODES, getNextPathways, MOCK_USER_STATS } from '../data/mockData';
 import { calculateSuccessProbability } from '../services/probabilityService';
+import { rollForEvent, applyEventEffects } from '../services/eventService';
 import NodeCard from './NodeCard';
+import BreakingNewsModal from './BreakingNewsModal';
 
 interface EnrichedNode extends Node {
   successProbability: number;
@@ -43,7 +45,7 @@ type TimelineColumn = {
 
 export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({ 
   startingNodeId,
-  userStats = MOCK_USER_STATS 
+  userStats: initialUserStats = MOCK_USER_STATS 
 }) => {
   // État de l'exploration
   const [exploreState, setExploreState] = useState<ExploreState>({
@@ -51,6 +53,14 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
     path: [startingNodeId],
     direction: 'right'
   });
+
+  // Stats utilisateur (mutables pour les événements)
+  const [userStats, setUserStats] = useState<UserStats>(initialUserStats);
+
+  // État des événements aléatoires
+  const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null);
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [pendingNodeId, setPendingNodeId] = useState<number | null>(null);
 
   // Nœud actuellement sélectionné
   const currentNode = useMemo(
@@ -75,11 +85,34 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
 
   // Navigation - Sélectionner un nœud suivant
   const handleSelectPathway = useCallback((nodeId: number) => {
+    // Éviter les doublons dans le path
+    if (exploreState.path.includes(nodeId)) {
+      return; // Ne rien faire si déjà dans le path
+    }
+
+    // 🎲 ROLL FOR RANDOM EVENT
+    const event = rollForEvent();
+
+    if (event) {
+      // Stocker le nœud en attente
+      setPendingNodeId(nodeId);
+      setCurrentEvent(event);
+      setEventModalOpen(true);
+      // La navigation sera complétée après fermeture de la modale
+    } else {
+      // Aucun événement, naviguer directement
+      proceedToNode(nodeId);
+    }
+  }, [exploreState.path]);
+
+  // Procède à la navigation après événement (ou sans événement)
+  const proceedToNode = useCallback((nodeId: number) => {
     setExploreState((prev) => {
-      // Éviter les doublons dans le path
+      // Double check : éviter les doublons même si déjà vérifié en amont
       if (prev.path.includes(nodeId)) {
-        return prev; // Ne rien faire si déjà dans le path
+        return prev; // Ne rien changer si déjà dans le path
       }
+      
       return {
         currentNodeId: nodeId,
         path: [...prev.path, nodeId],
@@ -87,6 +120,23 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
       };
     });
   }, []);
+
+  // Gestion de la fermeture de la modale d'événement
+  const handleEventModalClose = useCallback(() => {
+    if (currentEvent && pendingNodeId) {
+      // Appliquer les effets de l'événement sur les stats
+      const newStats = applyEventEffects(userStats, currentEvent.effect);
+      setUserStats(newStats);
+
+      // Naviguer vers le nœud en attente
+      proceedToNode(pendingNodeId);
+    }
+
+    // Reset event state
+    setEventModalOpen(false);
+    setCurrentEvent(null);
+    setPendingNodeId(null);
+  }, [currentEvent, pendingNodeId, userStats, proceedToNode]);
 
   // Navigation - Revenir en arrière
   const handleGoBack = useCallback(() => {
@@ -325,6 +375,15 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
           </motion.div>
         </motion.div>
       </main>
+
+      {/* BREAKING NEWS MODAL */}
+      {currentEvent && (
+        <BreakingNewsModal
+          isOpen={eventModalOpen}
+          event={currentEvent}
+          onClose={handleEventModalClose}
+        />
+      )}
     </div>
   );
 };

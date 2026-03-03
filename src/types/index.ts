@@ -68,3 +68,33 @@ export interface PathwayStep {
   successProbability: number; // 0-1 (0% à 100%)
   riskLevel: 'safe' | 'medium' | 'risky'; // Basé sur la probabilité
 }
+
+/**
+ * Event Aléatoire (RNG Event)
+ * Déclenché lors des transitions entre nœuds
+ */
+export interface RandomEvent {
+  id: number;
+  title: string;
+  description: string;
+  type: 'positive' | 'negative' | 'neutral'; // Type d'événement
+  effect: EventEffect;
+  probability: number; // 0-1 (probabilité de déclenchement)
+  icon: string; // Emoji ou icône
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'; // Rareté
+}
+
+/**
+ * Effet d'un événement sur les stats utilisateur
+ */
+export interface EventEffect {
+  math?: number; // +/- points en maths
+  french?: number; // +/- points en français
+  science?: number; // +/- points en sciences
+  average?: number; // +/- moyenne générale
+  salary_modifier?: number; // Multiplicateur de salaire futur (0.8 = -20%, 1.2 = +20%)
+  time_modifier?: number; // Accélère ou ralentit le temps (années)
+  skill_boost?: number; // Bonus général à toutes les matières
+  money?: number; // Gain ou perte d'argent (bourse, etc)
+  stress?: number; // Impact sur le stress (futur)
+}
