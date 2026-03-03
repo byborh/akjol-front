@@ -8,12 +8,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
-import type { Node, ExploreState, UserStats, RandomEvent } from '../types';
-import { NODES, getNextPathways, MOCK_USER_STATS } from '../data/mockData';
+import type { Node, ExploreState, UserStats, RandomEvent, School, UserPathStep } from '../types';
+import { NODES, getNextPathways, getSchoolsByNodeId, MOCK_USER_STATS } from '../data/mockData';
 import { calculateSuccessProbability } from '../services/probabilityService';
 import { rollForEvent, applyEventEffects } from '../services/eventService';
 import NodeCard from './NodeCard';
 import BreakingNewsModal from './BreakingNewsModal';
+import SchoolSelector from './SchoolSelector';
 
 interface EnrichedNode extends Node {
   successProbability: number;
@@ -23,6 +24,8 @@ interface EnrichedNode extends Node {
 interface ExploreTimelineProps {
   startingNodeId: number;
   userStats?: UserStats; // Optionnel, utilise les mock stats par défaut
+  initialPath?: UserPathStep[];
+  onPathChange?: (path: UserPathStep[]) => void;
 }
 
 /**
@@ -45,12 +48,28 @@ type TimelineColumn = {
 
 export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({ 
   startingNodeId,
-  userStats: initialUserStats = MOCK_USER_STATS 
+  userStats: initialUserStats = MOCK_USER_STATS,
+  initialPath,
+  onPathChange
 }) => {
+  const startingNode = useMemo(
+    () => NODES.find((node) => node.id === startingNodeId) ?? null,
+    [startingNodeId]
+  );
+  const fallbackSchool = useMemo(
+    () => getSchoolsByNodeId(startingNodeId)[0] ?? null,
+    [startingNodeId]
+  );
+
   // État de l'exploration
   const [exploreState, setExploreState] = useState<ExploreState>({
-    currentNodeId: startingNodeId,
-    path: [startingNodeId],
+    currentNodeId: initialPath?.[initialPath.length - 1]?.node.id ?? startingNodeId,
+    path:
+      initialPath && initialPath.length > 0
+        ? initialPath
+        : startingNode && fallbackSchool
+        ? [{ node: startingNode, school: fallbackSchool }]
+        : [],
     direction: 'right'
   });
 
@@ -60,7 +79,11 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
   // État des événements aléatoires
   const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null);
   const [eventModalOpen, setEventModalOpen] = useState(false);
-  const [pendingNodeId, setPendingNodeId] = useState<number | null>(null);
+  const [pendingStep, setPendingStep] = useState<{ node: Node; school: School } | null>(null);
+
+  // État de sélection d'établissement
+  const [isSelectingSchool, setIsSelectingSchool] = useState(false);
+  const [pendingNode, setPendingNode] = useState<Node | null>(null);
 
   // Nœud actuellement sélectionné
   const currentNode = useMemo(
@@ -85,65 +108,82 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
 
   // Navigation - Sélectionner un nœud suivant
   const handleSelectPathway = useCallback((nodeId: number) => {
+    const targetNode = NODES.find((node) => node.id === nodeId);
+    if (!targetNode) return;
+
     // Éviter les doublons dans le path
-    if (exploreState.path.includes(nodeId)) {
+    if (exploreState.path.some((step) => step.node.id === nodeId)) {
       return; // Ne rien faire si déjà dans le path
     }
 
-    // 🎲 ROLL FOR RANDOM EVENT
-    const event = rollForEvent();
-
-    if (event) {
-      // Stocker le nœud en attente
-      setPendingNodeId(nodeId);
-      setCurrentEvent(event);
-      setEventModalOpen(true);
-      // La navigation sera complétée après fermeture de la modale
-    } else {
-      // Aucun événement, naviguer directement
-      proceedToNode(nodeId);
-    }
+    // Forcer la sélection d'un établissement avant de valider le nœud
+    setPendingNode(targetNode);
+    setIsSelectingSchool(true);
   }, [exploreState.path]);
 
   // Procède à la navigation après événement (ou sans événement)
-  const proceedToNode = useCallback((nodeId: number) => {
+  const proceedToNode = useCallback((node: Node, school: School) => {
     setExploreState((prev) => {
       // Double check : éviter les doublons même si déjà vérifié en amont
-      if (prev.path.includes(nodeId)) {
+      if (prev.path.some((step) => step.node.id === node.id)) {
         return prev; // Ne rien changer si déjà dans le path
       }
       
       return {
-        currentNodeId: nodeId,
-        path: [...prev.path, nodeId],
+        currentNodeId: node.id,
+        path: [...prev.path, { node, school }],
         direction: 'right'
       };
     });
   }, []);
 
+  // Validation du nœud après sélection d'un établissement
+  const handleConfirmSchool = useCallback((school: School) => {
+    if (!pendingNode) return;
+
+    const selectedNode = pendingNode;
+    setIsSelectingSchool(false);
+    setPendingNode(null);
+
+    // 🎲 ROLL FOR RANDOM EVENT
+    const event = rollForEvent();
+
+    if (event) {
+      // Stocker l'étape complète en attente (node + school)
+      setPendingStep({ node: selectedNode, school });
+      setCurrentEvent(event);
+      setEventModalOpen(true);
+      // La navigation sera complétée après fermeture de la modale
+    } else {
+      // Aucun événement, naviguer directement
+      proceedToNode(selectedNode, school);
+    }
+  }, [pendingNode, proceedToNode]);
+
   // Gestion de la fermeture de la modale d'événement
   const handleEventModalClose = useCallback(() => {
-    if (currentEvent && pendingNodeId) {
+    if (currentEvent && pendingStep) {
       // Appliquer les effets de l'événement sur les stats
       const newStats = applyEventEffects(userStats, currentEvent.effect);
       setUserStats(newStats);
 
-      // Naviguer vers le nœud en attente
-      proceedToNode(pendingNodeId);
+      // Naviguer vers le nœud/établissement sélectionnés
+      proceedToNode(pendingStep.node, pendingStep.school);
     }
 
     // Reset event state
     setEventModalOpen(false);
     setCurrentEvent(null);
-    setPendingNodeId(null);
-  }, [currentEvent, pendingNodeId, userStats, proceedToNode]);
+    setPendingStep(null);
+    setPendingNode(null);
+  }, [currentEvent, pendingStep, userStats, proceedToNode]);
 
   // Navigation - Revenir en arrière
   const handleGoBack = useCallback(() => {
     setExploreState((prev) => {
       const newPath = prev.path.slice(0, -1);
       return {
-        currentNodeId: newPath[newPath.length - 1] || prev.currentNodeId,
+        currentNodeId: newPath[newPath.length - 1]?.node.id || prev.currentNodeId,
         path: newPath,
         direction: 'left'
       };
@@ -155,9 +195,9 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
     () => [
       {
         label: 'Votre parcours',
-        nodes: exploreState.path.map((id) => NODES.find((n) => n.id === id)).filter(Boolean) as Node[],
-        enrichedNodes: exploreState.path.map((id) => {
-          const node = NODES.find((n) => n.id === id);
+        nodes: exploreState.path.map((step) => step.node),
+        enrichedNodes: exploreState.path.map((step) => {
+          const node = step.node;
           return node ? enrichNodeWithProbability(node, userStats) : null;
         }).filter((n): n is EnrichedNode => n !== null),
         isCurrent: true
@@ -178,6 +218,10 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
     [exploreState.path, nextPathways, futureOptions, userStats]
   );
 
+  React.useEffect(() => {
+    onPathChange?.(exploreState.path);
+  }, [exploreState.path, onPathChange]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       {/* HEADER */}
@@ -196,10 +240,9 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
           {/* Breadcrumb / Path indicator */}
           <div className="flex items-center gap-2 text-xs md:text-sm overflow-x-auto max-w-full pb-2 md:pb-0">
             <AnimatePresence mode="popLayout">
-              {exploreState.path.map((nodeId, idx) => {
-                const node = NODES.find((n) => n.id === nodeId);
+              {exploreState.path.map((step, idx) => {
                 return (
-                  <React.Fragment key={nodeId}>
+                  <React.Fragment key={`${step?.node.id}-${step?.school.id}-${idx}`}>
                     <motion.span
                       className="text-gray-300 truncate whitespace-nowrap flex-shrink-0"
                       initial={{ opacity: 0, x: exploreState.direction === 'right' ? 20 : -20 }}
@@ -207,7 +250,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                       exit={{ opacity: 0, x: exploreState.direction === 'right' ? -20 : 20 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {node?.title}
+                      {step?.node.title} · {step?.school.name}
                     </motion.span>
                     {idx < exploreState.path.length - 1 && <span className="text-gray-500 flex-shrink-0">→</span>}
                   </React.Fragment>
@@ -254,7 +297,9 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                   </motion.div>
                 ) : (
                   <AnimatePresence mode="popLayout">
-                    {column.enrichedNodes.map((node, idx) => (
+                    {column.enrichedNodes.map((node, idx) => {
+                      const selectedSchool = colIdx === 0 ? exploreState.path[idx]?.school : null;
+                      return (
                       <motion.div
                         key={`${node.id}-${idx}`}
                         className={colIdx === 2 ? 'opacity-50 pointer-events-none' : ''}
@@ -274,8 +319,14 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                           successProbability={node.successProbability}
                           riskLevel={node.riskLevel}
                         />
+                        {selectedSchool && (
+                          <p className="mt-2 text-xs text-gray-400 px-1">
+                            Établissement : <span className="text-gray-300">{selectedSchool.name} ({selectedSchool.city})</span>
+                          </p>
+                        )}
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </AnimatePresence>
                 )}
               </div>
@@ -323,7 +374,9 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                 ) : (
                   <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
                     <AnimatePresence mode="popLayout">
-                      {column.enrichedNodes.map((node, idx) => (
+                      {column.enrichedNodes.map((node, idx) => {
+                        const selectedSchool = colIdx === 0 ? exploreState.path[idx]?.school : null;
+                        return (
                         <motion.div
                           key={`${node.id}-${idx}`}
                           className={colIdx === 2 ? 'opacity-50 pointer-events-none' : ''}
@@ -343,8 +396,14 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                             successProbability={node.successProbability}
                             riskLevel={node.riskLevel}
                           />
+                          {selectedSchool && (
+                            <p className="mt-2 text-xs text-gray-400 px-1">
+                              Établissement : <span className="text-gray-300">{selectedSchool.name} ({selectedSchool.city})</span>
+                            </p>
+                          )}
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </AnimatePresence>
                   </div>
                 )}
@@ -384,6 +443,17 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
           onClose={handleEventModalClose}
         />
       )}
+
+      <SchoolSelector
+        isOpen={isSelectingSchool}
+        node={pendingNode}
+        schools={pendingNode ? getSchoolsByNodeId(pendingNode.id) : []}
+        onSelectSchool={handleConfirmSchool}
+        onClose={() => {
+          setIsSelectingSchool(false);
+          setPendingNode(null);
+        }}
+      />
     </div>
   );
 };

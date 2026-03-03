@@ -8,7 +8,7 @@
  * - Metadata JSONB : Flexibilité complète par type
  */
 
-import type { Node, Edge, UserStats } from '../types';
+import type { Node, Edge, UserStats, School } from '../types';
 
 // ==================== NODES DATA ====================
 export const NODES: Node[] = [
@@ -21,7 +21,8 @@ export const NODES: Node[] = [
     description: 'Baccalauréat général avec spécialités scientifiques. Accès à pratiquement tout post-bac.',
     metadata: { difficulty: 'High', duration: '3 years', specialty: ['Maths', 'NSI'] },
     color: 'from-blue-500 to-blue-600',
-    icon: '🎓'
+    icon: '🎓',
+    schoolRequired: true
   },
   {
     id: 2,
@@ -31,7 +32,8 @@ export const NODES: Node[] = [
     description: 'Sciences et Technologies de l\'Industrie et du Développement Durable.',
     metadata: { difficulty: 'Medium', duration: '3 years', specialty: ['SIN', 'EE'] },
     color: 'from-orange-500 to-orange-600',
-    icon: '⚙️'
+    icon: '⚙️',
+    schoolRequired: true
   },
   {
     id: 3,
@@ -41,7 +43,8 @@ export const NODES: Node[] = [
     description: 'Systèmes Numériques / Cybersécurité. Formation directement professionnelle.',
     metadata: { difficulty: 'Medium', duration: '3 years', alternance: true },
     color: 'from-red-500 to-red-600',
-    icon: '🔧'
+    icon: '🔧',
+    schoolRequired: true
   },
 
   // --- LEVEL 1 : ÉTUDES SUPÉRIEURES (BAC+2/3) ---
@@ -65,7 +68,8 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-green-400 to-green-500',
-    icon: '🌐'
+    icon: '🌐',
+    schoolRequired: true
   },
   {
     id: 11,
@@ -87,7 +91,8 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-purple-400 to-purple-500',
-    icon: '💻'
+    icon: '💻',
+    schoolRequired: true
   },
   {
     id: 12,
@@ -109,7 +114,8 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-indigo-400 to-indigo-500',
-    icon: '📚'
+    icon: '📚',
+    schoolRequired: true
   },
   {
     id: 13,
@@ -131,7 +137,8 @@ export const NODES: Node[] = [
       difficulty: 'Hard'
     },
     color: 'from-pink-400 to-pink-500',
-    icon: '🚀'
+    icon: '🚀',
+    schoolRequired: true
   },
 
   // --- LEVEL 2 : POURSUITE D'ÉTUDES (BAC+3/5) ---
@@ -154,7 +161,8 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-cyan-400 to-cyan-500',
-    icon: '🎯'
+    icon: '🎯',
+    schoolRequired: true
   },
   {
     id: 21,
@@ -176,7 +184,8 @@ export const NODES: Node[] = [
       difficulty: 'Hard'
     },
     color: 'from-rose-400 to-rose-500',
-    icon: '👑'
+    icon: '👑',
+    schoolRequired: true
   },
 
   // --- LEVEL 3 : MÉTIERS (BUT ULTIME) ---
@@ -200,7 +209,8 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-yellow-400 to-yellow-500',
-    icon: '🚀'
+    icon: '🚀',
+    schoolRequired: true
   },
   {
     id: 31,
@@ -223,8 +233,56 @@ export const NODES: Node[] = [
       difficulty: 'Medium'
     },
     color: 'from-teal-400 to-teal-500',
-    icon: '🛡️'
+    icon: '🛡️',
+    schoolRequired: true
   }
+];
+
+// ==================== SCHOOLS DATA ====================
+export const SCHOOLS: School[] = [
+  { id: 1001, name: 'Lycée Voltaire', city: 'Paris', node_id: 1, rating: 4.3 },
+  { id: 1002, name: 'Lycée Montaigne', city: 'Bordeaux', node_id: 1, rating: 4.1 },
+  { id: 1003, name: 'Lycée Jean Perrin', city: 'Lyon', node_id: 1, rating: 4.2 },
+
+  { id: 1004, name: 'Lycée Gustave Eiffel', city: 'Dijon', node_id: 2, rating: 4.0 },
+  { id: 1005, name: 'Lycée Blaise Pascal', city: 'Clermont-Ferrand', node_id: 2, rating: 3.9 },
+  { id: 1006, name: 'Lycée Jules Verne', city: 'Nantes', node_id: 2, rating: 4.1 },
+
+  { id: 1007, name: 'Lycée Louis Armand', city: 'Poitiers', node_id: 3, rating: 3.8 },
+  { id: 1008, name: 'Lycée René Cassin', city: 'Bayonne', node_id: 3, rating: 3.9 },
+  { id: 1009, name: 'Lycée Victor Hugo', city: 'Besançon', node_id: 3, rating: 4.0 },
+
+  { id: 1010, name: 'Campus Tech Atlantique', city: 'Rennes', node_id: 10, rating: 4.2 },
+  { id: 1011, name: 'Institut Réseaux Sud', city: 'Montpellier', node_id: 10, rating: 4.1 },
+  { id: 1012, name: 'Sup Infra Lille', city: 'Lille', node_id: 10, rating: 4.3 },
+
+  { id: 1013, name: 'Académie Dev Paris', city: 'Paris', node_id: 11, rating: 4.4 },
+  { id: 1014, name: 'SupCode Lyon', city: 'Lyon', node_id: 11, rating: 4.2 },
+  { id: 1015, name: 'Institut Numérique Nice', city: 'Nice', node_id: 11, rating: 4.1 },
+
+  { id: 1016, name: 'IUT Informatique Toulouse', city: 'Toulouse', node_id: 12, rating: 4.3 },
+  { id: 1017, name: 'IUT Grenoble Alpes', city: 'Grenoble', node_id: 12, rating: 4.4 },
+  { id: 1018, name: 'IUT Strasbourg Tech', city: 'Strasbourg', node_id: 12, rating: 4.2 },
+
+  { id: 1019, name: '42 Paris', city: 'Paris', node_id: 13, rating: 4.7 },
+  { id: 1020, name: '42 Lyon AuRA', city: 'Lyon', node_id: 13, rating: 4.6 },
+  { id: 1021, name: '42 Nice Côte d’Azur', city: 'Nice', node_id: 13, rating: 4.5 },
+
+  { id: 1022, name: 'Université Numéria', city: 'Angers', node_id: 20, rating: 4.1 },
+  { id: 1023, name: 'Campus Pro Dev', city: 'Rouen', node_id: 20, rating: 4.0 },
+  { id: 1024, name: 'Fac Sciences Appliquées', city: 'Caen', node_id: 20, rating: 3.9 },
+
+  { id: 1025, name: 'MasterTech Sorbonne', city: 'Paris', node_id: 21, rating: 4.6 },
+  { id: 1026, name: 'Expert School Marseille', city: 'Marseille', node_id: 21, rating: 4.3 },
+  { id: 1027, name: 'Digital Graduate Lille', city: 'Lille', node_id: 21, rating: 4.4 },
+
+  { id: 1028, name: 'Bootcamp Fullstack One', city: 'Nantes', node_id: 30, rating: 4.2 },
+  { id: 1029, name: 'Factory JS Pro', city: 'Bordeaux', node_id: 30, rating: 4.1 },
+  { id: 1030, name: 'École Web Horizon', city: 'Paris', node_id: 30, rating: 4.3 },
+
+  { id: 1031, name: 'Institut Réseau Europe', city: 'Lyon', node_id: 31, rating: 4.0 },
+  { id: 1032, name: 'SysAdmin Academy', city: 'Toulouse', node_id: 31, rating: 4.1 },
+  { id: 1033, name: 'Campus Infra Ouest', city: 'Rennes', node_id: 31, rating: 3.9 }
 ];
 
 // ==================== EDGES DATA ====================
@@ -274,6 +332,13 @@ export function getNextPathways(nodeId: number): Node[] {
  */
 export function getEdgeRequirements(sourceId: number, targetId: number) {
   return EDGES.find((e) => e.source_id === sourceId && e.target_id === targetId)?.requirements || {};
+}
+
+/**
+ * Récupère les établissements associés à un nœud
+ */
+export function getSchoolsByNodeId(nodeId: number): School[] {
+  return SCHOOLS.filter((school) => school.node_id === nodeId);
 }
 
 // Pour backward compat avec App.tsx existant

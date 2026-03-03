@@ -15,6 +15,39 @@ export interface Node {
   color?: string; // Gradient Tailwind: "from-blue-500 to-blue-600"
   icon?: string; // Emoji ou lucide-react name
   requirements?: NodeRequirements; // Conditions pour accéder à ce nœud
+  schoolRequired?: boolean; // Si true, une école doit être sélectionnée pour valider l'étape
+}
+
+export interface School {
+  id: number;
+  name: string;
+  city: string;
+  node_id: number; // FK vers Node.id
+  rating?: number; // Optionnel, ex: 4.2 / 5
+}
+
+export interface UserPathStep {
+  node: Node;
+  school: School;
+}
+
+export interface UserPath {
+  steps: UserPathStep[];
+}
+
+export interface LifeSessionStats {
+  wallet: number;
+  stress: number;
+  age: number;
+}
+
+export interface LifeSession {
+  id: string; // uuid
+  name: string;
+  createdAt: number; // timestamp
+  path: UserPathStep[];
+  stats: LifeSessionStats;
+  startingNodeId?: number | null;
 }
 
 export interface Edge {
@@ -55,7 +88,7 @@ export interface UserStats {
  */
 export interface ExploreState {
   currentNodeId: number | null;
-  path: number[]; // IDs des nœuds visités (left to right)
+  path: UserPathStep[]; // Étapes validées (node + school)
   direction: 'left' | 'right'; // Pour l'animation
 }
 
