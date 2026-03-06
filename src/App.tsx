@@ -4,6 +4,7 @@ import ExploreTimeline from './components/ExploreTimeline';
 import type { LifeSession, UserPathStep } from './types';
 import { StorageService } from './services/storageService';
 import { AuthService } from './services/authService';
+import { LifeSharingService } from './services/lifeSharingService';
 
 type AppView = 'home' | 'explore';
 
@@ -11,6 +12,21 @@ const DUMMY_CREDENTIALS = {
   email: 'aaaa@gmail.com',
   password: 'aaa1234'
 };
+
+function buildUniqueName(baseName: string, existingNames: string[]): string {
+  const cleaned = baseName.trim() || 'Vie importee';
+  if (!existingNames.includes(cleaned)) return cleaned;
+
+  let counter = 2;
+  let candidate = `${cleaned} (${counter})`;
+
+  while (existingNames.includes(candidate)) {
+    counter += 1;
+    candidate = `${cleaned} (${counter})`;
+  }
+
+  return candidate;
+}
 
 function buildDefaultSession(name: string): LifeSession {
   const id = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -40,6 +56,13 @@ const AkJolApp = () => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [pendingSharedToken, setPendingSharedToken] = useState<string | null>(null);
+  const [showImportPanel, setShowImportPanel] = useState(false);
+  const [importValue, setImportValue] = useState('');
+  const [shareFeedback, setShareFeedback] = useState('');
+  const [importFeedback, setImportFeedback] = useState('');
+  const [latestShareUrl, setLatestShareUrl] = useState('');
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -63,6 +86,7 @@ const AkJolApp = () => {
       setSessions([initialSession]);
       setActiveSessionId(initialSession.id);
       setView('home');
+      setSessionsLoaded(true);
       return;
     }
 
@@ -72,7 +96,39 @@ const AkJolApp = () => {
     const lastActiveId = StorageService.getActiveSessionId();
     const isValidId = lastActiveId && storedSessions.some((s) => s.id === lastActiveId);
     setActiveSessionId(isValidId ? lastActiveId : storedSessions[0].id);
+    setSessionsLoaded(true);
   }, []);
+
+  useEffect(() => {
+    const sharedToken = LifeSharingService.consumeTokenFromCurrentUrl();
+    if (sharedToken) {
+      setPendingSharedToken(sharedToken);
+      setShowImportPanel(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!sessionsLoaded || !isLoggedIn || !pendingSharedToken) return;
+
+    try {
+      const imported = LifeSharingService.importSessionFromInput(pendingSharedToken);
+      const uniqueName = buildUniqueName(imported.name, sessions.map((session) => session.name));
+      const prepared: LifeSession = {
+        ...imported,
+        name: uniqueName
+      };
+
+      upsertSession(prepared);
+      setActiveSessionId(prepared.id);
+      setImportFeedback('Vie partagee importee automatiquement.');
+      setImportValue('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Import impossible.';
+      setImportFeedback(message);
+    } finally {
+      setPendingSharedToken(null);
+    }
+  }, [isLoggedIn, pendingSharedToken, sessions, sessionsLoaded]);
 
   useEffect(() => {
     if (!activeSession) return;
@@ -223,6 +279,65 @@ const AkJolApp = () => {
     setIsLoggedIn(false);
   };
 
+  const handleShareCurrentLife = async () => {
+    if (!activeSession) return;
+
+    const shareUrl = LifeSharingService.buildShareUrlForSession(activeSession);
+    setLatestShareUrl(shareUrl);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Simulation AkJol: ${activeSession.name}`,
+          text: 'Voici ma simulation de vie AkJol.',
+          url: shareUrl
+        });
+        setShareFeedback('Lien partage avec le menu natif.');
+        return;
+      } catch {
+        // Fallback clipboard below
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareFeedback('Lien copie dans le presse-papiers.');
+    } catch {
+      setShareFeedback('Copie automatique impossible. Copiez le lien affiche.');
+    }
+  };
+
+  const handleCopyLatestShareUrl = async () => {
+    if (!latestShareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(latestShareUrl);
+      setShareFeedback('Lien copie dans le presse-papiers.');
+    } catch {
+      setShareFeedback('Impossible de copier automatiquement ce lien.');
+    }
+  };
+
+  const handleImportSharedLife = () => {
+    try {
+      const imported = LifeSharingService.importSessionFromInput(importValue);
+      const uniqueName = buildUniqueName(imported.name, sessions.map((session) => session.name));
+      const prepared: LifeSession = {
+        ...imported,
+        name: uniqueName
+      };
+
+      upsertSession(prepared);
+      setActiveSessionId(prepared.id);
+      setImportFeedback(`Vie importee: ${prepared.name}`);
+      setImportValue('');
+      setShowImportPanel(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Import impossible.';
+      setImportFeedback(message);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4">
@@ -340,13 +455,72 @@ const AkJolApp = () => {
             </button>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-red-700/50 hover:border-red-600 whitespace-nowrap transition"
-          >
-            Déconnexion
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShareCurrentLife}
+              className="rounded-lg border border-blue-600 bg-blue-600/20 px-3 py-1.5 text-sm text-blue-100 hover:bg-blue-600/35 whitespace-nowrap transition"
+            >
+              Partager cette vie
+            </button>
+
+            <button
+              onClick={() => {
+                setShowImportPanel((prev) => !prev);
+                setImportFeedback('');
+              }}
+              className="rounded-lg border border-emerald-600 bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-600/35 whitespace-nowrap transition"
+            >
+              Recuperer une vie
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-red-700/50 hover:border-red-600 whitespace-nowrap transition"
+            >
+              Déconnexion
+            </button>
+          </div>
         </div>
+
+        {(latestShareUrl || showImportPanel || shareFeedback || importFeedback) && (
+          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-gray-700 bg-gray-800/70 p-2">
+            {latestShareUrl && (
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <input
+                  readOnly
+                  value={latestShareUrl}
+                  className="w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+                />
+                <button
+                  onClick={handleCopyLatestShareUrl}
+                  className="rounded border border-gray-500 bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 whitespace-nowrap"
+                >
+                  Copier le lien
+                </button>
+              </div>
+            )}
+
+            {showImportPanel && (
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <input
+                  value={importValue}
+                  onChange={(event) => setImportValue(event.target.value)}
+                  placeholder="Collez le lien ou le token de partage"
+                  className="w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-gray-200 placeholder:text-gray-500"
+                />
+                <button
+                  onClick={handleImportSharedLife}
+                  className="rounded border border-emerald-500 bg-emerald-600/20 px-2 py-1 text-xs text-emerald-100 hover:bg-emerald-600/35 whitespace-nowrap"
+                >
+                  Importer
+                </button>
+              </div>
+            )}
+
+            {shareFeedback && <p className="text-xs text-blue-200">{shareFeedback}</p>}
+            {importFeedback && <p className="text-xs text-emerald-200">{importFeedback}</p>}
+          </div>
+        )}
       </div>
 
       {view === 'home' && <StartingPoint onSelect={handleStartExplore} />}
