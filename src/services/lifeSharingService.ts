@@ -2,11 +2,29 @@ import type { LifeSession } from '../types';
 
 const SHARE_QUERY_KEY = 'shareLife';
 const PAYLOAD_VERSION = 1;
+const DEFAULT_SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type SharedLifePayload = {
   version: number;
   exportedAt: number;
+  expiresAt: number;
   life: LifeSession;
+};
+
+export type SharedLifePreview = {
+  name: string;
+  stepsCount: number;
+  exportedAt: number;
+  expiresAt: number;
+};
+
+type PreparedLifeImport = {
+  preview: SharedLifePreview;
+  session: LifeSession;
+};
+
+type ShareTokenOptions = {
+  ttlMs?: number;
 };
 
 function toBase64Url(value: string): string {
@@ -82,6 +100,14 @@ function parsePayloadFromToken(token: string): SharedLifePayload {
     throw new Error('Metadonnees de partage invalides.');
   }
 
+  if (typeof parsed.expiresAt !== 'number') {
+    throw new Error('Date d expiration invalide.');
+  }
+
+  if (Date.now() > parsed.expiresAt) {
+    throw new Error('Ce lien de partage a expire.');
+  }
+
   if (!isLifeSession(parsed.life)) {
     throw new Error('La vie partagee est invalide.');
   }
@@ -112,10 +138,19 @@ function extractTokenFromInput(input: string): string {
 }
 
 export const LifeSharingService = {
-  createShareToken(session: LifeSession): string {
+  getDefaultShareTtlMs(): number {
+    return DEFAULT_SHARE_TTL_MS;
+  },
+
+  createShareToken(session: LifeSession, options?: ShareTokenOptions): string {
+    const ttlMs = options?.ttlMs ?? DEFAULT_SHARE_TTL_MS;
+    const safeTtlMs = ttlMs > 0 ? ttlMs : DEFAULT_SHARE_TTL_MS;
+    const now = Date.now();
+
     const payload: SharedLifePayload = {
       version: PAYLOAD_VERSION,
-      exportedAt: Date.now(),
+      exportedAt: now,
+      expiresAt: now + safeTtlMs,
       life: session
     };
 
@@ -128,21 +163,35 @@ export const LifeSharingService = {
     return url.toString();
   },
 
-  buildShareUrlForSession(session: LifeSession): string {
-    const token = this.createShareToken(session);
+  buildShareUrlForSession(session: LifeSession, options?: ShareTokenOptions): string {
+    const token = this.createShareToken(session, options);
     return this.buildShareUrl(token);
   },
 
-  importSessionFromInput(input: string): LifeSession {
+  prepareImportFromInput(input: string): PreparedLifeImport {
     const token = extractTokenFromInput(input);
     const payload = parsePayloadFromToken(token);
 
-    return {
+    const session: LifeSession = {
       ...payload.life,
       id: createSessionId(),
       createdAt: Date.now(),
       name: payload.life.name.trim() || 'Vie importee'
     };
+
+    return {
+      preview: {
+        name: session.name,
+        stepsCount: session.path.length,
+        exportedAt: payload.exportedAt,
+        expiresAt: payload.expiresAt
+      },
+      session
+    };
+  },
+
+  importSessionFromInput(input: string): LifeSession {
+    return this.prepareImportFromInput(input).session;
   },
 
   consumeTokenFromCurrentUrl(): string | null {

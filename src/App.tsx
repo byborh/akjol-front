@@ -5,13 +5,26 @@ import type { LifeSession, UserPathStep } from './types';
 import { StorageService } from './services/storageService';
 import { AuthService } from './services/authService';
 import { LifeSharingService } from './services/lifeSharingService';
+import type { SharedLifePreview } from './services/lifeSharingService';
 
 type AppView = 'home' | 'explore';
 
-const DUMMY_CREDENTIALS = {
-  email: 'aaaa@gmail.com',
-  password: 'aaa1234'
+type ShareDurationOption = {
+  label: string;
+  ttlMs: number;
 };
+
+const TEST_USERS = [
+  { email: 'aaaa@gmail.com', password: 'aaaa1234' },
+  { email: 'bbbb@gmail.com', password: 'bbbb1234' },
+  { email: 'cccc@gmail.com', password: 'cccc1234' }
+] as const;
+
+const SHARE_DURATION_OPTIONS: ShareDurationOption[] = [
+  { label: '24h', ttlMs: 24 * 60 * 60 * 1000 },
+  { label: '7 jours', ttlMs: 7 * 24 * 60 * 60 * 1000 },
+  { label: '30 jours', ttlMs: 30 * 24 * 60 * 60 * 1000 }
+];
 
 function buildUniqueName(baseName: string, existingNames: string[]): string {
   const cleaned = baseName.trim() || 'Vie importee';
@@ -47,6 +60,13 @@ function buildDefaultSession(name: string): LifeSession {
   };
 }
 
+function formatDateTime(timestamp: number): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(timestamp));
+}
+
 const AkJolApp = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
@@ -63,6 +83,12 @@ const AkJolApp = () => {
   const [shareFeedback, setShareFeedback] = useState('');
   const [importFeedback, setImportFeedback] = useState('');
   const [latestShareUrl, setLatestShareUrl] = useState('');
+  const [latestShareExpiresAt, setLatestShareExpiresAt] = useState<number | null>(null);
+  const [selectedShareTtlMs, setSelectedShareTtlMs] = useState<number>(
+    LifeSharingService.getDefaultShareTtlMs()
+  );
+  const [pendingImportSession, setPendingImportSession] = useState<LifeSession | null>(null);
+  const [importPreview, setImportPreview] = useState<SharedLifePreview | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -111,17 +137,25 @@ const AkJolApp = () => {
     if (!sessionsLoaded || !isLoggedIn || !pendingSharedToken) return;
 
     try {
-      const imported = LifeSharingService.importSessionFromInput(pendingSharedToken);
-      const uniqueName = buildUniqueName(imported.name, sessions.map((session) => session.name));
-      const prepared: LifeSession = {
-        ...imported,
+      const preparedImport = LifeSharingService.prepareImportFromInput(pendingSharedToken);
+      const uniqueName = buildUniqueName(
+        preparedImport.session.name,
+        sessions.map((session) => session.name)
+      );
+      const preparedSession: LifeSession = {
+        ...preparedImport.session,
+        name: uniqueName
+      };
+      const preview: SharedLifePreview = {
+        ...preparedImport.preview,
         name: uniqueName
       };
 
-      upsertSession(prepared);
-      setActiveSessionId(prepared.id);
-      setImportFeedback('Vie partagee importee automatiquement.');
+      setPendingImportSession(preparedSession);
+      setImportPreview(preview);
+      setImportFeedback('Lien detecte. Verifiez l apercu puis confirmez l import.');
       setImportValue('');
+      setShowImportPanel(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Import impossible.';
       setImportFeedback(message);
@@ -145,15 +179,17 @@ const AkJolApp = () => {
   const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const isValidUser =
-      email.trim() === DUMMY_CREDENTIALS.email && password === DUMMY_CREDENTIALS.password;
+    const normalizedEmail = email.trim().toLowerCase();
+    const isValidUser = TEST_USERS.some(
+      (user) => user.email === normalizedEmail && user.password === password
+    );
 
     if (!isValidUser) {
       alert('Identifiants incorrects.');
       return;
     }
 
-    AuthService.saveAuthSession(email.trim());
+    AuthService.saveAuthSession(normalizedEmail);
     setIsLoggedIn(true);
     setEmail('');
     setPassword('');
@@ -282,8 +318,12 @@ const AkJolApp = () => {
   const handleShareCurrentLife = async () => {
     if (!activeSession) return;
 
-    const shareUrl = LifeSharingService.buildShareUrlForSession(activeSession);
+    const shareUrl = LifeSharingService.buildShareUrlForSession(activeSession, {
+      ttlMs: selectedShareTtlMs
+    });
+    const expiresAt = Date.now() + selectedShareTtlMs;
     setLatestShareUrl(shareUrl);
+    setLatestShareExpiresAt(expiresAt);
 
     if (navigator.share) {
       try {
@@ -292,7 +332,7 @@ const AkJolApp = () => {
           text: 'Voici ma simulation de vie AkJol.',
           url: shareUrl
         });
-        setShareFeedback('Lien partage avec le menu natif.');
+        setShareFeedback(`Lien partage. Expiration: ${formatDateTime(expiresAt)}.`);
         return;
       } catch {
         // Fallback clipboard below
@@ -301,7 +341,7 @@ const AkJolApp = () => {
 
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setShareFeedback('Lien copie dans le presse-papiers.');
+      setShareFeedback(`Lien copie. Expiration: ${formatDateTime(expiresAt)}.`);
     } catch {
       setShareFeedback('Copie automatique impossible. Copiez le lien affiche.');
     }
@@ -320,22 +360,46 @@ const AkJolApp = () => {
 
   const handleImportSharedLife = () => {
     try {
-      const imported = LifeSharingService.importSessionFromInput(importValue);
-      const uniqueName = buildUniqueName(imported.name, sessions.map((session) => session.name));
-      const prepared: LifeSession = {
-        ...imported,
+      const preparedImport = LifeSharingService.prepareImportFromInput(importValue);
+      const uniqueName = buildUniqueName(
+        preparedImport.session.name,
+        sessions.map((session) => session.name)
+      );
+
+      const preparedSession: LifeSession = {
+        ...preparedImport.session,
+        name: uniqueName
+      };
+      const preview: SharedLifePreview = {
+        ...preparedImport.preview,
         name: uniqueName
       };
 
-      upsertSession(prepared);
-      setActiveSessionId(prepared.id);
-      setImportFeedback(`Vie importee: ${prepared.name}`);
-      setImportValue('');
+      setPendingImportSession(preparedSession);
+      setImportPreview(preview);
+      setImportFeedback('Apercu pret. Confirmez pour importer cette vie.');
       setShowImportPanel(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Import impossible.';
       setImportFeedback(message);
     }
+  };
+
+  const handleConfirmImport = () => {
+    if (!pendingImportSession || !importPreview) return;
+
+    upsertSession(pendingImportSession);
+    setActiveSessionId(pendingImportSession.id);
+    setImportFeedback(`Vie importee: ${pendingImportSession.name}`);
+    setImportValue('');
+    setPendingImportSession(null);
+    setImportPreview(null);
+  };
+
+  const handleCancelImport = () => {
+    setPendingImportSession(null);
+    setImportPreview(null);
+    setImportFeedback('Import annule.');
   };
 
   if (!isLoggedIn) {
@@ -345,6 +409,10 @@ const AkJolApp = () => {
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-gray-900">Connexion</h1>
             <p className="text-sm text-gray-500 mt-2">Accédez à votre simulation AkJol</p>
+            <p className="text-xs text-gray-500 mt-3">
+              Comptes de test: aaaa@gmail.com / aaaa1234, bbbb@gmail.com / bbbb1234,
+              cccc@gmail.com / cccc1234
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -456,6 +524,19 @@ const AkJolApp = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <select
+              aria-label="Duree d expiration du lien de partage"
+              value={selectedShareTtlMs}
+              onChange={(event) => setSelectedShareTtlMs(Number(event.target.value))}
+              className="rounded-lg border border-gray-600 bg-gray-800 px-2 py-1.5 text-xs text-gray-200 focus:outline-none"
+            >
+              {SHARE_DURATION_OPTIONS.map((option) => (
+                <option key={option.ttlMs} value={option.ttlMs}>
+                  Expire dans {option.label}
+                </option>
+              ))}
+            </select>
+
             <button
               onClick={handleShareCurrentLife}
               className="rounded-lg border border-blue-600 bg-blue-600/20 px-3 py-1.5 text-sm text-blue-100 hover:bg-blue-600/35 whitespace-nowrap transition"
@@ -500,6 +581,12 @@ const AkJolApp = () => {
               </div>
             )}
 
+            {latestShareExpiresAt && (
+              <p className="text-xs text-blue-300">
+                Ce lien expire le {formatDateTime(latestShareExpiresAt)}.
+              </p>
+            )}
+
             {showImportPanel && (
               <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <input
@@ -539,6 +626,51 @@ const AkJolApp = () => {
           >
             ← Retour à l'accueil
           </button>
+        </div>
+      )}
+
+      {importPreview && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-gray-700 bg-gray-900 p-5 shadow-2xl">
+            <h2 className="text-lg font-bold text-white">Confirmer l import de la vie</h2>
+            <p className="mt-1 text-sm text-gray-300">
+              Verifiez les informations avant d ajouter cette simulation.
+            </p>
+
+            <div className="mt-4 space-y-2 rounded-lg border border-gray-700 bg-gray-800/70 p-3 text-sm">
+              <p className="text-gray-200">
+                <span className="text-gray-400">Nom: </span>
+                {importPreview.name}
+              </p>
+              <p className="text-gray-200">
+                <span className="text-gray-400">Etapes: </span>
+                {importPreview.stepsCount}
+              </p>
+              <p className="text-gray-200">
+                <span className="text-gray-400">Partage le: </span>
+                {formatDateTime(importPreview.exportedAt)}
+              </p>
+              <p className="text-gray-200">
+                <span className="text-gray-400">Expiration: </span>
+                {formatDateTime(importPreview.expiresAt)}
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={handleCancelImport}
+                className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                className="rounded-lg border border-emerald-500 bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-600/35"
+              >
+                Confirmer l import
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
