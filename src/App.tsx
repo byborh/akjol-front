@@ -1,688 +1,88 @@
-import { useEffect, useMemo, useState } from 'react';
 import StartingPoint from './components/StartingPoint';
 import ExploreTimeline from './components/ExploreTimeline';
-import type { LifeSession, UserPathStep } from './types';
-import { StorageService } from './services/storageService';
-import { AuthService } from './services/authService';
-import { LifeSharingService } from './services/lifeSharingService';
-import type { SharedLifePreview } from './services/lifeSharingService';
-
-type AppView = 'home' | 'explore';
-
-type ShareDurationOption = {
-  label: string;
-  ttlMs: number;
-};
-
-const TEST_USERS = [
-  { email: 'aaaa@gmail.com', password: 'aaaa1234' },
-  { email: 'bbbb@gmail.com', password: 'bbbb1234' },
-  { email: 'cccc@gmail.com', password: 'cccc1234' }
-] as const;
-
-const SHARE_DURATION_OPTIONS: ShareDurationOption[] = [
-  { label: '24h', ttlMs: 24 * 60 * 60 * 1000 },
-  { label: '7 jours', ttlMs: 7 * 24 * 60 * 60 * 1000 },
-  { label: '30 jours', ttlMs: 30 * 24 * 60 * 60 * 1000 }
-];
-
-function buildUniqueName(baseName: string, existingNames: string[]): string {
-  const cleaned = baseName.trim() || 'Vie importee';
-  if (!existingNames.includes(cleaned)) return cleaned;
-
-  let counter = 2;
-  let candidate = `${cleaned} (${counter})`;
-
-  while (existingNames.includes(candidate)) {
-    counter += 1;
-    candidate = `${cleaned} (${counter})`;
-  }
-
-  return candidate;
-}
-
-function buildDefaultSession(name: string): LifeSession {
-  const id = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
-  return {
-    id,
-    name,
-    createdAt: Date.now(),
-    path: [],
-    stats: {
-      wallet: 0,
-      stress: 0,
-      age: 17
-    },
-    startingNodeId: null
-  };
-}
-
-function formatDateTime(timestamp: number): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(new Date(timestamp));
-}
-
-const AkJolApp = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [view, setView] = useState<AppView>('home');
-  const [sessions, setSessions] = useState<LifeSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [sessionsLoaded, setSessionsLoaded] = useState(false);
-  const [pendingSharedToken, setPendingSharedToken] = useState<string | null>(null);
-  const [showImportPanel, setShowImportPanel] = useState(false);
-  const [importValue, setImportValue] = useState('');
-  const [shareFeedback, setShareFeedback] = useState('');
-  const [importFeedback, setImportFeedback] = useState('');
-  const [latestShareUrl, setLatestShareUrl] = useState('');
-  const [latestShareExpiresAt, setLatestShareExpiresAt] = useState<number | null>(null);
-  const [selectedShareTtlMs, setSelectedShareTtlMs] = useState<number>(
-    LifeSharingService.getDefaultShareTtlMs()
-  );
-  const [pendingImportSession, setPendingImportSession] = useState<LifeSession | null>(null);
-  const [importPreview, setImportPreview] = useState<SharedLifePreview | null>(null);
-
-  const activeSession = useMemo(
-    () => sessions.find((session) => session.id === activeSessionId) ?? null,
-    [sessions, activeSessionId]
-  );
-
-  useEffect(() => {
-    // Check if user is still authenticated (session may have expired)
-    const authSession = AuthService.getAuthSession();
-    if (authSession) {
-      setIsLoggedIn(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedSessions = StorageService.getAllSessions();
-
-    if (storedSessions.length === 0) {
-      const initialSession = buildDefaultSession('Vie #1');
-      StorageService.saveSession(initialSession);
-      setSessions([initialSession]);
-      setActiveSessionId(initialSession.id);
-      setView('home');
-      setSessionsLoaded(true);
-      return;
-    }
-
-    setSessions(storedSessions);
-
-    // Restaurer la dernière session active si elle existe encore
-    const lastActiveId = StorageService.getActiveSessionId();
-    const isValidId = lastActiveId && storedSessions.some((s) => s.id === lastActiveId);
-    setActiveSessionId(isValidId ? lastActiveId : storedSessions[0].id);
-    setSessionsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    const sharedToken = LifeSharingService.consumeTokenFromCurrentUrl();
-    if (sharedToken) {
-      setPendingSharedToken(sharedToken);
-      setShowImportPanel(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!sessionsLoaded || !isLoggedIn || !pendingSharedToken) return;
-
-    try {
-      const preparedImport = LifeSharingService.prepareImportFromInput(pendingSharedToken);
-      const uniqueName = buildUniqueName(
-        preparedImport.session.name,
-        sessions.map((session) => session.name)
-      );
-      const preparedSession: LifeSession = {
-        ...preparedImport.session,
-        name: uniqueName
-      };
-      const preview: SharedLifePreview = {
-        ...preparedImport.preview,
-        name: uniqueName
-      };
-
-      setPendingImportSession(preparedSession);
-      setImportPreview(preview);
-      setImportFeedback('Lien detecte. Verifiez l apercu puis confirmez l import.');
-      setImportValue('');
-      setShowImportPanel(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Import impossible.';
-      setImportFeedback(message);
-    } finally {
-      setPendingSharedToken(null);
-    }
-  }, [isLoggedIn, pendingSharedToken, sessions, sessionsLoaded]);
-
-  useEffect(() => {
-    if (!activeSession) return;
-    setView(activeSession.path.length > 0 || activeSession.startingNodeId ? 'explore' : 'home');
-  }, [activeSession]);
-
-  // Persister l'ID de la session active
-  useEffect(() => {
-    if (activeSessionId) {
-      StorageService.setActiveSessionId(activeSessionId);
-    }
-  }, [activeSessionId]);
-
-  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const isValidUser = TEST_USERS.some(
-      (user) => user.email === normalizedEmail && user.password === password
-    );
-
-    if (!isValidUser) {
-      alert('Identifiants incorrects.');
-      return;
-    }
-
-    AuthService.saveAuthSession(normalizedEmail);
-    setIsLoggedIn(true);
-    setEmail('');
-    setPassword('');
-  };
-
-  const upsertSession = (updatedSession: LifeSession) => {
-    setSessions((prev) => {
-      const index = prev.findIndex((session) => session.id === updatedSession.id);
-      if (index === -1) return [...prev, updatedSession];
-
-      const clone = [...prev];
-      clone[index] = updatedSession;
-      return clone;
-    });
-
-    StorageService.saveSession(updatedSession);
-  };
-
-  const handleCreateNewLife = () => {
-    const nextName = `Vie #${sessions.length + 1}`;
-    const newSession = buildDefaultSession(nextName);
-
-    upsertSession(newSession);
-    setActiveSessionId(newSession.id);
-    setView('home');
-  };
-
-  const handleDeleteSession = (id: string) => {
-    StorageService.deleteSession(id);
-
-    setSessions((prev) => {
-      const updated = prev.filter((session) => session.id !== id);
-
-      if (updated.length === 0) {
-        const fallback = buildDefaultSession('Vie #1');
-        StorageService.saveSession(fallback);
-        setActiveSessionId(fallback.id);
-        setView('home');
-        return [fallback];
-      }
-
-      if (activeSessionId === id) {
-        setActiveSessionId(updated[0].id);
-      }
-
-      return updated;
-    });
-  };
-
-  const startRenameSession = (session: LifeSession) => {
-    setEditingSessionId(session.id);
-    setEditingName(session.name);
-  };
-
-  const commitRenameSession = (id: string) => {
-    const trimmed = editingName.trim();
-    if (!trimmed) {
-      setEditingSessionId(null);
-      setEditingName('');
-      return;
-    }
-
-    setSessions((prev) =>
-      prev.map((session) =>
-        session.id === id
-          ? {
-              ...session,
-              name: trimmed
-            }
-          : session
-      )
-    );
-
-    StorageService.updateSessionName(id, trimmed);
-    setEditingSessionId(null);
-    setEditingName('');
-  };
-
-  // Handlers
-  const handleStartExplore = (nodeId: number) => {
-    if (!activeSession) return;
-
-    const updatedSession: LifeSession = {
-      ...activeSession,
-      startingNodeId: nodeId
-    };
-
-    upsertSession(updatedSession);
-    setView('explore');
-  };
-
-  const handleBackToHome = () => {
-    if (!activeSession) return;
-
-    setView('home');
-
-    const updatedSession: LifeSession = {
-      ...activeSession,
-      startingNodeId: null,
-      path: []
-    };
-
-    upsertSession(updatedSession);
-  };
-
-  const handlePathChange = (path: UserPathStep[]) => {
-    if (!activeSession) return;
-
-    const updatedSession: LifeSession = {
-      ...activeSession,
-      path,
-      stats: {
-        ...activeSession.stats,
-        age: 17 + Math.max(0, path.length - 1)
-      }
-    };
-
-    upsertSession(updatedSession);
-  };
-
-  const handleLogout = () => {
-    AuthService.clearAuthSession();
-    setIsLoggedIn(false);
-  };
-
-  const handleShareCurrentLife = async () => {
-    if (!activeSession) return;
-
-    const shareUrl = LifeSharingService.buildShareUrlForSession(activeSession, {
-      ttlMs: selectedShareTtlMs
-    });
-    const expiresAt = Date.now() + selectedShareTtlMs;
-    setLatestShareUrl(shareUrl);
-    setLatestShareExpiresAt(expiresAt);
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Simulation AkJol: ${activeSession.name}`,
-          text: 'Voici ma simulation de vie AkJol.',
-          url: shareUrl
-        });
-        setShareFeedback(`Lien partage. Expiration: ${formatDateTime(expiresAt)}.`);
-        return;
-      } catch {
-        // Fallback clipboard below
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setShareFeedback(`Lien copie. Expiration: ${formatDateTime(expiresAt)}.`);
-    } catch {
-      setShareFeedback('Copie automatique impossible. Copiez le lien affiche.');
-    }
-  };
-
-  const handleCopyLatestShareUrl = async () => {
-    if (!latestShareUrl) return;
-
-    try {
-      await navigator.clipboard.writeText(latestShareUrl);
-      setShareFeedback('Lien copie dans le presse-papiers.');
-    } catch {
-      setShareFeedback('Impossible de copier automatiquement ce lien.');
-    }
-  };
-
-  const handleImportSharedLife = () => {
-    try {
-      const preparedImport = LifeSharingService.prepareImportFromInput(importValue);
-      const uniqueName = buildUniqueName(
-        preparedImport.session.name,
-        sessions.map((session) => session.name)
-      );
-
-      const preparedSession: LifeSession = {
-        ...preparedImport.session,
-        name: uniqueName
-      };
-      const preview: SharedLifePreview = {
-        ...preparedImport.preview,
-        name: uniqueName
-      };
-
-      setPendingImportSession(preparedSession);
-      setImportPreview(preview);
-      setImportFeedback('Apercu pret. Confirmez pour importer cette vie.');
-      setShowImportPanel(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Import impossible.';
-      setImportFeedback(message);
-    }
-  };
-
-  const handleConfirmImport = () => {
-    if (!pendingImportSession || !importPreview) return;
-
-    upsertSession(pendingImportSession);
-    setActiveSessionId(pendingImportSession.id);
-    setImportFeedback(`Vie importee: ${pendingImportSession.name}`);
-    setImportValue('');
-    setPendingImportSession(null);
-    setImportPreview(null);
-  };
-
-  const handleCancelImport = () => {
-    setPendingImportSession(null);
-    setImportPreview(null);
-    setImportFeedback('Import annule.');
-  };
-
-  if (!isLoggedIn) {
+import AppHeader from './components/AppHeader';
+import ImportPreviewModal from './components/ImportPreviewModal';
+import LoginPanel from './components/LoginPanel';
+import { SHARE_DURATION_OPTIONS } from './constants/sharing';
+import { getTestUsersHint } from './constants/auth';
+import { useAkJolApp } from './hooks/useAkJolApp';
+import { formatDateTime } from './utils/lifeSessionUtils';
+
+const App = () => {
+  const app = useAkJolApp();
+
+  if (!app.isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Connexion</h1>
-            <p className="text-sm text-gray-500 mt-2">Accédez à votre simulation AkJol</p>
-            <p className="text-xs text-gray-500 mt-3">
-              Comptes de test: aaaa@gmail.com / aaaa1234, bbbb@gmail.com / bbbb1234,
-              cccc@gmail.com / cccc1234
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                E-mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-                placeholder="aaaa@gmail.com"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Mot de passe
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-gray-900 text-white py-2.5 font-semibold hover:bg-gray-800 transition"
-            >
-              Se connecter
-            </button>
-          </form>
-        </div>
-      </div>
+      <LoginPanel
+        email={app.email}
+        password={app.password}
+        onEmailChange={app.setEmail}
+        onPasswordChange={app.setPassword}
+        onSubmit={app.handleLogin}
+        testUsersHint={getTestUsersHint()}
+      />
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="sticky top-0 z-[60] border-b border-gray-700 bg-gray-900/95 backdrop-blur px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {sessions.map((session) => {
-              const isActive = session.id === activeSessionId;
-              const isEditing = session.id === editingSessionId;
+      <AppHeader
+        sessions={app.sessions}
+        activeSessionId={app.activeSessionId}
+        editingSessionId={app.editingSessionId}
+        editingName={app.editingName}
+        showImportPanel={app.showImportPanel}
+        importValue={app.importValue}
+        latestShareUrl={app.latestShareUrl}
+        latestShareExpiresAt={app.latestShareExpiresAt}
+        shareFeedback={app.shareFeedback}
+        importFeedback={app.importFeedback}
+        selectedShareTtlMs={app.selectedShareTtlMs}
+        shareDurationOptions={SHARE_DURATION_OPTIONS}
+        onSelectSession={app.setActiveSessionId}
+        onStartRenameSession={app.handleStartRenameSession}
+        onEditingNameChange={app.setEditingName}
+        onCommitRenameSession={app.handleCommitRenameSession}
+        onCancelRenameSession={app.handleCancelRenameSession}
+        onDeleteSession={app.handleDeleteSession}
+        onCreateNewLife={app.handleCreateNewLife}
+        onChangeShareTtl={app.setSelectedShareTtlMs}
+        onShareCurrentLife={app.handleShareCurrentLife}
+        onToggleImportPanel={app.handleToggleImportPanel}
+        onImportValueChange={app.setImportValue}
+        onImportSharedLife={app.handleImportSharedLife}
+        onCopyLatestShareUrl={app.handleCopyLatestShareUrl}
+        onLogout={app.handleLogout}
+        formatDateTime={formatDateTime}
+      />
 
-              return (
-                <div
-                  key={session.id}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 ${
-                    isActive
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-gray-700 bg-gray-800 text-gray-300'
-                  }`}
-                >
-                  {isEditing ? (
-                    <input
-                      autoFocus
-                      value={editingName}
-                      onChange={(event) => setEditingName(event.target.value)}
-                      onBlur={() => commitRenameSession(session.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') commitRenameSession(session.id);
-                        if (event.key === 'Escape') {
-                          setEditingSessionId(null);
-                          setEditingName('');
-                        }
-                      }}
-                      className="w-28 rounded bg-gray-900 border border-gray-600 px-2 py-1 text-xs text-white focus:outline-none"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => setActiveSessionId(session.id)}
-                      onDoubleClick={() => startRenameSession(session)}
-                      className="text-sm font-medium whitespace-nowrap"
-                    >
-                      {session.name}
-                    </button>
-                  )}
+      {app.view === 'home' && <StartingPoint onSelect={app.handleStartExplore} />}
 
-                  <button
-                    onClick={() => handleDeleteSession(session.id)}
-                    className="text-xs text-gray-400 hover:text-red-400"
-                    aria-label={`Supprimer ${session.name}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
-
-            <button
-              onClick={handleCreateNewLife}
-              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 whitespace-nowrap"
-            >
-              + Nouvelle Vie
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              aria-label="Duree d expiration du lien de partage"
-              value={selectedShareTtlMs}
-              onChange={(event) => setSelectedShareTtlMs(Number(event.target.value))}
-              className="rounded-lg border border-gray-600 bg-gray-800 px-2 py-1.5 text-xs text-gray-200 focus:outline-none"
-            >
-              {SHARE_DURATION_OPTIONS.map((option) => (
-                <option key={option.ttlMs} value={option.ttlMs}>
-                  Expire dans {option.label}
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={handleShareCurrentLife}
-              className="rounded-lg border border-blue-600 bg-blue-600/20 px-3 py-1.5 text-sm text-blue-100 hover:bg-blue-600/35 whitespace-nowrap transition"
-            >
-              Partager cette vie
-            </button>
-
-            <button
-              onClick={() => {
-                setShowImportPanel((prev) => !prev);
-                setImportFeedback('');
-              }}
-              className="rounded-lg border border-emerald-600 bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-600/35 whitespace-nowrap transition"
-            >
-              Recuperer une vie
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-red-700/50 hover:border-red-600 whitespace-nowrap transition"
-            >
-              Déconnexion
-            </button>
-          </div>
-        </div>
-
-        {(latestShareUrl || showImportPanel || shareFeedback || importFeedback) && (
-          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-gray-700 bg-gray-800/70 p-2">
-            {latestShareUrl && (
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <input
-                  readOnly
-                  value={latestShareUrl}
-                  className="w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-gray-200"
-                />
-                <button
-                  onClick={handleCopyLatestShareUrl}
-                  className="rounded border border-gray-500 bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 whitespace-nowrap"
-                >
-                  Copier le lien
-                </button>
-              </div>
-            )}
-
-            {latestShareExpiresAt && (
-              <p className="text-xs text-blue-300">
-                Ce lien expire le {formatDateTime(latestShareExpiresAt)}.
-              </p>
-            )}
-
-            {showImportPanel && (
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <input
-                  value={importValue}
-                  onChange={(event) => setImportValue(event.target.value)}
-                  placeholder="Collez le lien ou le token de partage"
-                  className="w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-gray-200 placeholder:text-gray-500"
-                />
-                <button
-                  onClick={handleImportSharedLife}
-                  className="rounded border border-emerald-500 bg-emerald-600/20 px-2 py-1 text-xs text-emerald-100 hover:bg-emerald-600/35 whitespace-nowrap"
-                >
-                  Importer
-                </button>
-              </div>
-            )}
-
-            {shareFeedback && <p className="text-xs text-blue-200">{shareFeedback}</p>}
-            {importFeedback && <p className="text-xs text-emerald-200">{importFeedback}</p>}
-          </div>
-        )}
-      </div>
-
-      {view === 'home' && <StartingPoint onSelect={handleStartExplore} />}
-
-      {view === 'explore' && activeSession?.startingNodeId && (
+      {app.view === 'explore' && app.activeSession?.startingNodeId && (
         <div className="relative">
           <ExploreTimeline
-            key={activeSession.id}
-            startingNodeId={activeSession.startingNodeId}
-            initialPath={activeSession.path}
-            onPathChange={handlePathChange}
+            key={app.activeSession.id}
+            startingNodeId={app.activeSession.startingNodeId}
+            initialPath={app.activeSession.path}
+            onPathChange={app.handlePathChange}
           />
           <button
-            onClick={handleBackToHome}
+            onClick={app.handleBackToHome}
             className="fixed top-6 left-6 z-50 px-4 py-2 bg-gray-700/80 hover:bg-gray-600 rounded-lg text-white text-sm font-semibold transition"
           >
-            ← Retour à l'accueil
+            Retour a l accueil
           </button>
         </div>
       )}
 
-      {importPreview && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-gray-700 bg-gray-900 p-5 shadow-2xl">
-            <h2 className="text-lg font-bold text-white">Confirmer l import de la vie</h2>
-            <p className="mt-1 text-sm text-gray-300">
-              Verifiez les informations avant d ajouter cette simulation.
-            </p>
-
-            <div className="mt-4 space-y-2 rounded-lg border border-gray-700 bg-gray-800/70 p-3 text-sm">
-              <p className="text-gray-200">
-                <span className="text-gray-400">Nom: </span>
-                {importPreview.name}
-              </p>
-              <p className="text-gray-200">
-                <span className="text-gray-400">Etapes: </span>
-                {importPreview.stepsCount}
-              </p>
-              <p className="text-gray-200">
-                <span className="text-gray-400">Partage le: </span>
-                {formatDateTime(importPreview.exportedAt)}
-              </p>
-              <p className="text-gray-200">
-                <span className="text-gray-400">Expiration: </span>
-                {formatDateTime(importPreview.expiresAt)}
-              </p>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={handleCancelImport}
-                className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleConfirmImport}
-                className="rounded-lg border border-emerald-500 bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-600/35"
-              >
-                Confirmer l import
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImportPreviewModal
+        preview={app.importPreview}
+        onCancel={app.handleCancelImport}
+        onConfirm={app.handleConfirmImport}
+        formatDateTime={formatDateTime}
+      />
     </div>
   );
-};
-
-const AkJolHome = () => {
-  return <AkJolApp />;
-};
-
-const App = () => {
-  return <AkJolHome />;
 };
 
 export default App;
