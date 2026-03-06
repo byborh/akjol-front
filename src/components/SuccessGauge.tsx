@@ -67,7 +67,7 @@ export const SuccessGauge: React.FC<SuccessGaugeProps> = ({
   return (
     <div className={`flex flex-col ${containerHeightMap[size]}`}>
       {/* Barre de progression */}
-      <div className={`w-full ${heightMap[size]} bg-gray-700 rounded-full overflow-hidden ring-1 ring-gray-600`}>
+      <div className={`w-full ${heightMap[size]} bg-[#E2E8F0] dark:bg-[#27272A] rounded-full overflow-hidden ring-1 ring-[#E2E8F0] dark:ring-[#27272A] transition-colors`}>
         <motion.div
           className={`h-full bg-gradient-to-r ${getColorForRiskLevel(metrics.riskLevel)}`}
           initial={{ width: '0%' }}
@@ -78,7 +78,7 @@ export const SuccessGauge: React.FC<SuccessGaugeProps> = ({
 
       {/* Infos textuelles */}
       {(showLabel || showPercentage) && (
-        <div className={`flex items-center justify-between text-white ${textSizeMap[size]}`}>
+        <div className={`flex items-center justify-between text-gray-900 dark:text-[#F3F4F6] ${textSizeMap[size]}`}>
           {showLabel && <span className="font-semibold">{riskText}</span>}
           {showPercentage && (
             <motion.span

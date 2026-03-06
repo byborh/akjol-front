@@ -15,7 +15,7 @@ const THEME_STORAGE_KEY = 'akjol-theme';
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return (stored === 'light' || stored === 'dark') ? stored : 'dark';
+    return (stored === 'light' || stored === 'dark') ? stored : 'light';
   });
 
   useEffect(() => {

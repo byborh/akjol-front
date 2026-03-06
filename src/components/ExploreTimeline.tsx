@@ -279,7 +279,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
               <motion.div className="mb-4 md:mb-6" whileInView={{ x: [0, 4, 0] }} transition={{ duration: 2, repeat: Infinity }}>
                 <h2 className="text-base md:text-xl font-bold mb-2">{column.label}</h2>
                 <motion.div
-                  className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                  className="h-1 w-20 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-full"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ duration: 0.6, delay: 0.2 + colIdx * 0.1 }}
@@ -356,7 +356,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                 <div className="mb-4">
                   <h2 className="text-lg md:text-xl font-bold mb-2">{column.label}</h2>
                   <motion.div
-                    className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                    className="h-1 w-20 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-full"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: 0.6, delay: 0.2 + colIdx * 0.1 }}
@@ -399,8 +399,8 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                             riskLevel={node.riskLevel}
                           />
                           {selectedSchool && (
-                            <p className="mt-2 text-xs text-gray-400 px-1">
-                              Établissement : <span className="text-gray-300">{selectedSchool.name} ({selectedSchool.city})</span>
+                            <p className="mt-2 text-xs text-gray-600 dark:text-gray-400 px-1">
+                              Établissement : <span className="text-gray-900 dark:text-[#F3F4F6]">{selectedSchool.name} ({selectedSchool.city})</span>
                             </p>
                           )}
                         </motion.div>

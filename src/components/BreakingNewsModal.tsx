@@ -54,7 +54,7 @@ export default function BreakingNewsModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           >
             <div
-              className="bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-700 max-w-2xl w-full overflow-hidden pointer-events-auto"
+              className="bg-white dark:bg-[#27272A] rounded-2xl shadow-2xl border-2 border-[#E2E8F0] dark:border-[#27272A] max-w-2xl w-full overflow-hidden pointer-events-auto transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header avec gradient */}
@@ -124,7 +124,7 @@ export default function BreakingNewsModal({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="text-gray-300 text-lg leading-relaxed"
+                  className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed"
                 >
                   {event.description}
                 </motion.p>
@@ -135,7 +135,7 @@ export default function BreakingNewsModal({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
                 >
-                  <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <h3 className="text-gray-900 dark:text-[#F3F4F6] font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Zap className="w-4 h-4" />
                     Effets Immédiats
                   </h3>
@@ -161,7 +161,7 @@ export default function BreakingNewsModal({
                             ${event.type === 'neutral' ? 'bg-blue-400' : ''}
                           `}
                         />
-                        <span className="text-gray-200 font-medium">{effect}</span>
+                        <span className="text-gray-900 dark:text-[#F3F4F6] font-medium">{effect}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -187,7 +187,7 @@ export default function BreakingNewsModal({
               {/* Footer avec probabilité (dev info) */}
               {import.meta.env.DEV && (
                 <div className="px-6 pb-4">
-                  <div className="text-xs text-gray-600 text-center">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 text-center">
                     Probabilité: {(event.probability * 100).toFixed(2)}% • Type: {event.type} • Rareté: {event.rarity}
                   </div>
                 </div>

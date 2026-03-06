@@ -90,8 +90,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
         {/* Header */}
         <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-8 py-6 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-white">Formations & Établissements</h2>
-            <p className="text-white/90 mt-1">Explorez les formations et leurs établissements</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">Formations & Établissements</h2>
+            <p className="text-gray-700 dark:text-gray-300 mt-1">Explorez les formations et leurs établissements</p>
           </div>
           <button
             onClick={onClose}
@@ -222,24 +222,24 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
             {viewMode === 'formations' ? (
               selectedFormation ? (
                 <div className="space-y-6">
-                  {/* Formation Header */}
+                  {/* Formation Header avec gradient violet (accent 10%) */}
                   <div
-                    className={`bg-gradient-to-r ${selectedFormation.color} rounded-lg p-6 text-white`}
+                    className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-lg p-6 text-white"
                   >
                     <div className="text-5xl mb-3">{selectedFormation.icon}</div>
                     <h3 className="text-3xl font-bold mb-2">{selectedFormation.title}</h3>
-                    <p className="text-white/90">{selectedFormation.description}</p>
+                    <p className="text-white/95">{selectedFormation.description}</p>
                   </div>
 
                   {/* Metadata */}
                   {Object.keys(selectedFormation.metadata || {}).length > 0 && (
                     <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
-                      <h4 className="font-bold text-gray-900 dark:text-white mb-3">Informations</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-[#F3F4F6] mb-3">Informations</h4>
                       <div className="grid grid-cols-2 gap-3">
                         {Object.entries(selectedFormation.metadata || {}).map(([key, value]) => (
                           <div key={key} className="bg-white dark:bg-[#27272A] rounded p-3 border border-[#E2E8F0] dark:border-[#27272A]">
                             <div className="text-xs text-gray-700 dark:text-gray-300 uppercase font-semibold">{key}</div>
-                            <div className="text-gray-900 dark:text-white mt-1">
+                            <div className="text-gray-900 dark:text-[#F3F4F6] mt-1">
                               {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                             </div>
                           </div>
@@ -252,12 +252,12 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                   {selectedFormation.requirements && 
                     Object.keys(selectedFormation.requirements).length > 0 && (
                     <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
-                      <h4 className="font-bold text-gray-900 dark:text-white mb-3">Prérequis</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-[#F3F4F6] mb-3">Prérequis</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        {Object.entries(selectedFormation.requirements).map(([key, value]) => (
+                        {Object.entries(selectedFormation.requirements || {}).map(([key, value]) => (
                           <div key={key} className="bg-white dark:bg-[#27272A] rounded p-3 border border-[#E2E8F0] dark:border-[#27272A]">
                             <div className="text-xs text-gray-700 dark:text-gray-300 uppercase font-semibold">{key}</div>
-                            <div className="text-gray-900 dark:text-white mt-1">{String(value)}</div>
+                            <div className="text-gray-900 dark:text-[#F3F4F6] mt-1">{String(value)}</div>
                           </div>
                         ))}
                       </div>
@@ -278,7 +278,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                             className="w-full text-left bg-white dark:bg-[#27272A] hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46] rounded p-3 flex justify-between items-start transition-colors cursor-pointer group border border-[#E2E8F0] dark:border-[#27272A]"
                           >
                             <div>
-                              <div className="font-semibold text-gray-900 dark:text-white group-hover:text-[#8B5CF6]">
+                              <div className="font-semibold text-gray-900 dark:text-[#F3F4F6] group-hover:text-[#8B5CF6]">
                                 {school.name} →
                               </div>
                               <div className="text-sm text-gray-700 dark:text-gray-300">{school.city}</div>
@@ -311,16 +311,16 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                 <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-lg p-6 text-white">
                   <div className="text-5xl mb-3">🏢</div>
                   <h3 className="text-3xl font-bold mb-2">{selectedSchool.name}</h3>
-                  <p className="text-white/90">{selectedSchool.city}</p>
+                  <p className="text-white/95">{selectedSchool.city}</p>
                   <div className="mt-3 inline-flex items-center gap-1">
                     <span className="text-2xl font-bold">⭐ {selectedSchool.rating}</span>
-                    <span className="text-sm text-white/70">/5</span>
+                    <span className="text-sm text-white/80">/5</span>
                   </div>
                 </div>
 
                 {/* Formations Offered */}
                 <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <h4 className="font-bold text-gray-900 dark:text-[#F3F4F6] mb-4 flex items-center gap-2">
                     📚 Formation proposée
                   </h4>
                   {formationsForSchool.length > 0 ? (
@@ -329,7 +329,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                         <button
                           key={formation.id}
                           onClick={() => handleGoToFormation(formation)}
-                          className={`w-full text-left bg-gradient-to-r ${formation.color} rounded-lg p-4 text-white hover:opacity-90 transition-opacity cursor-pointer group`}
+                          className="w-full text-left bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-lg p-4 text-white hover:opacity-90 transition-opacity cursor-pointer group"
                         >
                           <div className="flex items-start gap-3">
                             <div className="text-3xl">{formation.icon}</div>
@@ -337,10 +337,10 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                               <div className="font-bold text-lg group-hover:underline">
                                 {formation.title} →
                               </div>
-                              <div className="text-sm text-white/80 mt-1">
+                              <div className="text-sm text-white/90 mt-1">
                                 {formation.description}
                               </div>
-                              <div className="text-xs text-white/60 mt-2">
+                              <div className="text-xs text-white/70 mt-2">
                                 {getFormationTypeLabel(formation.type)}
                               </div>
                             </div>

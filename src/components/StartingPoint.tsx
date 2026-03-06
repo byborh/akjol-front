@@ -62,7 +62,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-[#E2E8F0] to-[#F8F9FA] dark:from-[#121212] dark:via-[#27272A] dark:to-[#121212] text-gray-900 dark:text-[#F3F4F6] transition-colors duration-200">
       {/* HERO SECTION */}
       <motion.div
         className="relative py-12 md:py-20 px-4 md:px-6 text-center"
@@ -70,7 +70,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        <motion.div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 blur-3xl" />
+        <motion.div className="absolute inset-0 bg-gradient-to-r from-[#8B5CF6]/10 via-[#7C3AED]/10 to-[#8B5CF6]/10 blur-3xl" />
 
         <div className="relative z-10">
           <motion.div
@@ -78,11 +78,11 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <Sparkles size={40} className="md:w-12 md:h-12 text-yellow-400" />
+            <Sparkles size={40} className="md:w-12 md:h-12 text-[#8B5CF6]" />
           </motion.div>
 
           <motion.h1
-            className="text-3xl md:text-5xl lg:text-6xl font-black mb-3 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
+            className="text-3xl md:text-5xl lg:text-6xl font-black mb-3 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#7C3AED] to-[#8B5CF6]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
@@ -91,13 +91,13 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           </motion.h1>
 
           <motion.p
-            className="text-base md:text-lg lg:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-2"
+            className="text-base md:text-lg lg:text-xl text-gray-700 dark:text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
           >
             Le Moteur de Simulation de Vie. Où êtes-vous maintenant ?
-            <span className="block text-xs md:text-sm text-gray-400 mt-2">
+            <span className="block text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-2">
               Sélectionnez votre point de départ pour explorer tous les chemins possibles
             </span>
           </motion.p>
@@ -113,7 +113,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
       >
         <div className="relative">
           <motion.div
-            className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400"
             animate={{ rotate: searchTerm ? 0 : 360 }}
             transition={{ duration: searchTerm ? 0.2 : 2, repeat: searchTerm ? 0 : Infinity }}
           >
@@ -124,7 +124,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             placeholder="Cherchez votre situation (ex: Bac, BTS, Licence...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-800 border-2 border-gray-700 rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition"
+            className="w-full bg-[#E2E8F0] dark:bg-[#27272A] border-2 border-[#E2E8F0] dark:border-[#27272A] rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-gray-900 dark:text-[#F3F4F6] placeholder-gray-600 dark:placeholder-gray-400 focus:border-[#8B5CF6] focus:outline-none transition-colors"
             whileFocus={{ scale: 1.02 }}
           />
         </div>
@@ -143,7 +143,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           >
             <motion.h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-3" variants={itemVariants}>
               <motion.div
-                className="h-1 w-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                className="h-1 w-12 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-full"
                 initial={{ scaleX: 0 }}
                 whileInView={{ scaleX: 1 }}
                 transition={{ duration: 0.6 }}
@@ -188,8 +188,8 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <p className="text-gray-400 text-base md:text-lg">Aucun résultat pour "{searchTerm}"</p>
-            <p className="text-gray-500 text-xs md:text-sm mt-2">Essayez une autre recherche</p>
+            <p className="text-gray-600 dark:text-gray-400 text-base md:text-lg">Aucun résultat pour "{searchTerm}"</p>
+            <p className="text-gray-600 dark:text-gray-500 text-xs md:text-sm mt-2">Essayez une autre recherche</p>
           </motion.div>
         )}
       </div>

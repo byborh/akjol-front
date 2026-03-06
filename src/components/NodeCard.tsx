@@ -38,11 +38,11 @@ export const NodeCard: React.FC<NodeCardProps> = ({
 
   const sizeClasses = variant === 'expanded' ? 'p-4 md:p-6 w-full' : 'p-3 md:p-4 w-full';
 
-  const bgGradient = node.color || 'from-gray-400 to-gray-500';
-  const bgClass = `bg-gradient-to-br ${bgGradient}`;
+  // Utilise les couleurs du thème 60-30-10 : surfaces (30%) avec accent violet (10%)
+  const bgClass = 'bg-[#E2E8F0] dark:bg-[#27272A] hover:bg-[#8B5CF6]/90 dark:hover:bg-[#8B5CF6]/90 transition-colors duration-200';
 
   const hoverClasses = isActive
-    ? 'ring-4 ring-white shadow-2xl'
+    ? 'ring-4 ring-[#8B5CF6] shadow-2xl'
     : 'shadow-md hover:shadow-lg';
 
   return (
@@ -54,12 +54,12 @@ export const NodeCard: React.FC<NodeCardProps> = ({
       whileHover={{ scale: isActive ? 1.05 : 1.02, y: -4 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`${baseClasses} ${sizeClasses} ${bgClass} ${hoverClasses} text-white`}
+      className={`${baseClasses} ${sizeClasses} ${bgClass} ${hoverClasses} text-gray-900 dark:text-[#F3F4F6]`}
     >
-      {/* Overlay semi-transparent au hover */}
+      {/* Overlay violet accent au hover */}
       <motion.div
-        className="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none"
-        whileHover={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
+        className="absolute inset-0 bg-[#8B5CF6]/0 group-hover:bg-[#8B5CF6]/10 pointer-events-none transition-colors duration-200"
+        whileHover={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
       />
 
       {/* Contenu */}
@@ -74,8 +74,8 @@ export const NodeCard: React.FC<NodeCardProps> = ({
             {node.icon || '📌'}
           </motion.span>
           <motion.span
-            className="text-xs bg-white/20 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full font-semibold"
-            whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
+            className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/30 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full font-semibold text-[#8B5CF6] dark:text-[#C4B5FD]"
+            whileHover={{ backgroundColor: 'rgba(139, 92, 246, 0.3)' }}
           >
             {node.type}
           </motion.span>
@@ -89,14 +89,14 @@ export const NodeCard: React.FC<NodeCardProps> = ({
         {/* Description */}
         {variant === 'expanded' && (
           <motion.p
-            className="text-xs md:text-sm text-white/90 mb-3 md:mb-4 line-clamp-2"
+            className="text-xs md:text-sm text-gray-700 dark:text-gray-300 mb-3 md:mb-4 line-clamp-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: animationDelay * 0.05 + 0.1 }}
           >
             {node.description}
           </motion.p>
-        )}
+        )}  
 
         {/* Metadata mini display */}
         {variant === 'expanded' && node.metadata && (
@@ -111,11 +111,11 @@ export const NodeCard: React.FC<NodeCardProps> = ({
               .map(([key, value]) => (
                 <motion.div
                   key={key}
-                  className="bg-white/10 rounded p-1.5 md:p-2 text-xs"
-                  whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+                  className="bg-[#F8F9FA] dark:bg-[#121212] rounded p-1.5 md:p-2 text-xs border border-[#E2E8F0] dark:border-[#27272A]"
+                  whileHover={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
                 >
-                  <span className="font-semibold">{key}:</span>
-                  <span className="text-white/80 hidden md:inline"> {String(value).substring(0, 15)}</span>
+                  <span className="font-semibold text-gray-900 dark:text-[#F3F4F6]">{key}:</span>
+                  <span className="text-gray-700 dark:text-gray-300 hidden md:inline"> {String(value).substring(0, 15)}</span>
                 </motion.div>
               ))}
           </motion.div>
