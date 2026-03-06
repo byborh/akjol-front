@@ -28,6 +28,7 @@ type AppHeaderProps = {
   onImportSharedLife: () => void;
   onCopyLatestShareUrl: () => void;
   onLogout: () => void;
+  onOpenFormations: () => void;
   formatDateTime: (timestamp: number) => string;
 };
 
@@ -58,6 +59,7 @@ const AppHeader = ({
   onImportSharedLife,
   onCopyLatestShareUrl,
   onLogout,
+  onOpenFormations,
   formatDateTime
 }: AppHeaderProps) => {
   return (
@@ -144,6 +146,13 @@ const AppHeader = ({
             className="rounded-lg border border-emerald-600 bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-600/35 whitespace-nowrap transition"
           >
             Recuperer une vie
+          </button>
+
+          <button
+            onClick={onOpenFormations}
+            className="rounded-lg border border-amber-600 bg-amber-600/20 px-3 py-1.5 text-sm text-amber-100 hover:bg-amber-600/35 whitespace-nowrap transition"
+          >
+            📚 Formations
           </button>
 
           <button

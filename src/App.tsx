@@ -3,6 +3,7 @@ import ExploreTimeline from './components/ExploreTimeline';
 import AppHeader from './components/AppHeader';
 import ImportPreviewModal from './components/ImportPreviewModal';
 import LoginPanel from './components/LoginPanel';
+import { FormationExplorer } from './components/FormationExplorer';
 import { SHARE_DURATION_OPTIONS } from './constants/sharing';
 import { getTestUsersHint } from './constants/auth';
 import { useAkJolApp } from './hooks/useAkJolApp';
@@ -53,6 +54,7 @@ const App = () => {
         onImportSharedLife={app.handleImportSharedLife}
         onCopyLatestShareUrl={app.handleCopyLatestShareUrl}
         onLogout={app.handleLogout}
+        onOpenFormations={app.handleOpenFormations}
         formatDateTime={formatDateTime}
       />
 
@@ -74,6 +76,8 @@ const App = () => {
           </button>
         </div>
       )}
+
+      {app.view === 'formations' && <FormationExplorer onClose={app.handleCloseFormations} />}
 
       <ImportPreviewModal
         preview={app.importPreview}

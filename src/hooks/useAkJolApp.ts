@@ -8,7 +8,7 @@ import { LifeSharingService } from '../services/lifeSharingService';
 import { TEST_USERS } from '../constants/auth';
 import { buildDefaultSession, buildUniqueName, formatDateTime } from '../utils/lifeSessionUtils';
 
-export type AppView = 'home' | 'explore';
+export type AppView = 'home' | 'explore' | 'formations';
 
 export const useAkJolApp = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -351,6 +351,19 @@ export const useAkJolApp = () => {
     setImportFeedback('Import annule.');
   };
 
+  const handleOpenFormations = () => {
+    setView('formations');
+  };
+
+  const handleCloseFormations = () => {
+    // Retour à la vue précédente (home ou explore selon l'état de la session active)
+    if (activeSession && (activeSession.path.length > 0 || activeSession.startingNodeId)) {
+      setView('explore');
+    } else {
+      setView('home');
+    }
+  };
+
   return {
     isLoggedIn,
     email,
@@ -390,6 +403,8 @@ export const useAkJolApp = () => {
     handleToggleImportPanel,
     handleImportSharedLife,
     handleConfirmImport,
-    handleCancelImport
+    handleCancelImport,
+    handleOpenFormations,
+    handleCloseFormations
   };
 };
