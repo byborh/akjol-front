@@ -16,6 +16,10 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // States pour les écoles
+  const [searchTermSchool, setSearchTermSchool] = useState('');
+  const [filterCity, setFilterCity] = useState<string>('all');
 
   // Pré-sélectionner la formation si elle provient de la simulation
   useEffect(() => {
@@ -28,6 +32,12 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
     }
   }, [selectedNodeId]);
 
+  // Liste des villes uniques pour le filtre
+  const uniqueCities = useMemo(() => {
+    const cities = SCHOOLS.map(school => school.city);
+    return ['all', ...Array.from(new Set(cities)).sort()];
+  }, []);
+
   // Filtered & Searched Formations
   const filteredFormations = useMemo(() => {
     return NODES.filter((node) => {
@@ -38,6 +48,15 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       return typeMatch && searchMatch;
     });
   }, [filterType, searchTerm]);
+
+  // Filtered & Searched Schools
+  const filteredSchools = useMemo(() => {
+    return SCHOOLS.filter((school) => {
+      const cityMatch = filterCity === 'all' || school.city === filterCity;
+      const searchMatch = school.name.toLowerCase().includes(searchTermSchool.toLowerCase());
+      return cityMatch && searchMatch;
+    });
+  }, [filterCity, searchTermSchool]);
 
   // Schools for selected formation
   const schoolsForFormation = useMemo(() => {
@@ -190,9 +209,48 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
               </>
             ) : (
               <>
+                {/* Filter Section pour Schools */}
+                <div className="p-4 border-b border-[#E2E8F0] dark:border-[#27272A]">
+                  <div className="mb-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
+                      Ville
+                    </label>
+                    <select
+                      value={filterCity}
+                      onChange={(e) => setFilterCity(e.target.value)}
+                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    >
+                      <option value="all">Toutes les villes</option>
+                      {uniqueCities.filter(city => city !== 'all').map((city) => (
+                        <option key={city} value={city}>
+                          📍 {city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
+                      Rechercher
+                    </label>
+                    <input
+                      type="text"
+                      value={searchTermSchool}
+                      onChange={(e) => setSearchTermSchool(e.target.value)}
+                      placeholder="Nom de l'établissement..."
+                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+
                 {/* Schools List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  {SCHOOLS.map((school) => (
+                  {filteredSchools.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <p className="text-sm">Aucun établissement trouvé</p>
+                      <p className="text-xs mt-1">Essayez une autre recherche</p>
+                    </div>
+                  ) : (
+                    filteredSchools.map((school) => (
                     <button
                       key={school.id}
                       onClick={() => setSelectedSchool(school)}
@@ -211,7 +269,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                         </div>
                       </div>
                     </button>
-                  ))}
+                    ))
+                  )}
                 </div>
               </>
             )}
