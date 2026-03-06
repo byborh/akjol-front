@@ -3,6 +3,7 @@ import StartingPoint from './components/StartingPoint';
 import ExploreTimeline from './components/ExploreTimeline';
 import type { LifeSession, UserPathStep } from './types';
 import { StorageService } from './services/storageService';
+import { AuthService } from './services/authService';
 
 type AppView = 'home' | 'explore';
 
@@ -44,6 +45,14 @@ const AkJolApp = () => {
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [sessions, activeSessionId]
   );
+
+  useEffect(() => {
+    // Check if user is still authenticated (session may have expired)
+    const authSession = AuthService.getAuthSession();
+    if (authSession) {
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   useEffect(() => {
     const storedSessions = StorageService.getAllSessions();
@@ -88,6 +97,7 @@ const AkJolApp = () => {
       return;
     }
 
+    AuthService.saveAuthSession(email.trim());
     setIsLoggedIn(true);
     setEmail('');
     setPassword('');
@@ -208,6 +218,11 @@ const AkJolApp = () => {
     upsertSession(updatedSession);
   };
 
+  const handleLogout = () => {
+    AuthService.clearAuthSession();
+    setIsLoggedIn(false);
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4">
@@ -266,61 +281,70 @@ const AkJolApp = () => {
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="sticky top-0 z-[60] border-b border-gray-700 bg-gray-900/95 backdrop-blur px-3 py-2">
-        <div className="flex items-center gap-2 overflow-x-auto">
-          {sessions.map((session) => {
-            const isActive = session.id === activeSessionId;
-            const isEditing = session.id === editingSessionId;
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {sessions.map((session) => {
+              const isActive = session.id === activeSessionId;
+              const isEditing = session.id === editingSessionId;
 
-            return (
-              <div
-                key={session.id}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 ${
-                  isActive
-                    ? 'border-purple-500 bg-purple-500/20 text-white'
-                    : 'border-gray-700 bg-gray-800 text-gray-300'
-                }`}
-              >
-                {isEditing ? (
-                  <input
-                    autoFocus
-                    value={editingName}
-                    onChange={(event) => setEditingName(event.target.value)}
-                    onBlur={() => commitRenameSession(session.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') commitRenameSession(session.id);
-                      if (event.key === 'Escape') {
-                        setEditingSessionId(null);
-                        setEditingName('');
-                      }
-                    }}
-                    className="w-28 rounded bg-gray-900 border border-gray-600 px-2 py-1 text-xs text-white focus:outline-none"
-                  />
-                ) : (
-                  <button
-                    onClick={() => setActiveSessionId(session.id)}
-                    onDoubleClick={() => startRenameSession(session)}
-                    className="text-sm font-medium whitespace-nowrap"
-                  >
-                    {session.name}
-                  </button>
-                )}
-
-                <button
-                  onClick={() => handleDeleteSession(session.id)}
-                  className="text-xs text-gray-400 hover:text-red-400"
-                  aria-label={`Supprimer ${session.name}`}
+              return (
+                <div
+                  key={session.id}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 ${
+                    isActive
+                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      : 'border-gray-700 bg-gray-800 text-gray-300'
+                  }`}
                 >
-                  ×
-                </button>
-              </div>
-            );
-          })}
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={editingName}
+                      onChange={(event) => setEditingName(event.target.value)}
+                      onBlur={() => commitRenameSession(session.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') commitRenameSession(session.id);
+                        if (event.key === 'Escape') {
+                          setEditingSessionId(null);
+                          setEditingName('');
+                        }
+                      }}
+                      className="w-28 rounded bg-gray-900 border border-gray-600 px-2 py-1 text-xs text-white focus:outline-none"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setActiveSessionId(session.id)}
+                      onDoubleClick={() => startRenameSession(session)}
+                      className="text-sm font-medium whitespace-nowrap"
+                    >
+                      {session.name}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleDeleteSession(session.id)}
+                    className="text-xs text-gray-400 hover:text-red-400"
+                    aria-label={`Supprimer ${session.name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={handleCreateNewLife}
+              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 whitespace-nowrap"
+            >
+              + Nouvelle Vie
+            </button>
+          </div>
 
           <button
-            onClick={handleCreateNewLife}
-            className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 whitespace-nowrap"
+            onClick={handleLogout}
+            className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-red-700/50 hover:border-red-600 whitespace-nowrap transition"
           >
-            + Nouvelle Vie
+            Déconnexion
           </button>
         </div>
       </div>
