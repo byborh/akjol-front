@@ -108,7 +108,11 @@ export const useAkJolApp = () => {
 
   useEffect(() => {
     if (!activeSession) return;
-    setView(activeSession.path.length > 0 || activeSession.startingNodeId ? 'explore' : 'home');
+    // Ne pas changer la vue si l'utilisateur est dans l'explorer de formations
+    setView((currentView) => {
+      if (currentView === 'formations') return currentView;
+      return activeSession.path.length > 0 || activeSession.startingNodeId ? 'explore' : 'home';
+    });
   }, [activeSession]);
 
   useEffect(() => {
