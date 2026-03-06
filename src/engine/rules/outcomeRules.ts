@@ -208,26 +208,46 @@ export function calculateReadinessScore(
   let totalScore = 0;
   let criteriaCount = 0;
 
+  // Score progressif:
+  // - En dessous du minimum requis: 0 -> 70
+  // - Au minimum requis: 70
+  // - Au-dessus du minimum: 70 -> 100 selon proximité de 20/20
+  const scoreForRequirement = (current: number, required: number): number => {
+    if (required <= 0) return 100;
+
+    if (current < required) {
+      return Math.max(0, (current / required) * 70);
+    }
+
+    const headroom = 20 - required;
+    if (headroom <= 0) {
+      return 100;
+    }
+
+    const progressAboveMin = Math.min(1, (current - required) / headroom);
+    return 70 + progressAboveMin * 30;
+  };
+
   if (requirements.math !== undefined) {
-    const score = Math.min(100, (userProfile.stats.math / requirements.math) * 100);
+    const score = scoreForRequirement(userProfile.stats.math, requirements.math);
     totalScore += score;
     criteriaCount++;
   }
 
   if (requirements.french !== undefined) {
-    const score = Math.min(100, (userProfile.stats.french / requirements.french) * 100);
+    const score = scoreForRequirement(userProfile.stats.french, requirements.french);
     totalScore += score;
     criteriaCount++;
   }
 
   if (requirements.science !== undefined) {
-    const score = Math.min(100, (userProfile.stats.science / requirements.science) * 100);
+    const score = scoreForRequirement(userProfile.stats.science, requirements.science);
     totalScore += score;
     criteriaCount++;
   }
 
   if (requirements.average !== undefined) {
-    const score = Math.min(100, (userProfile.stats.average / requirements.average) * 100);
+    const score = scoreForRequirement(userProfile.stats.average, requirements.average);
     totalScore += score;
     criteriaCount++;
   }

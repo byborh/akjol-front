@@ -232,13 +232,13 @@ describe('calculateReadinessScore', () => {
     expect(score).toBe(100);
   });
 
-  it('devrait retourner 100 si stats dépassent requirements', () => {
+  it('devrait retourner un score eleve mais pas automatiquement 100 si stats depassent legerement les requirements', () => {
     const score = calculateReadinessScore(baseProfile, {
       math: 8,
       french: 8,
       science: 8
     });
-    expect(score).toBe(100);
+    expect(score).toBe(75);
   });
 
   it('devrait calculer un score partiel si déficit', () => {
@@ -248,8 +248,8 @@ describe('calculateReadinessScore', () => {
       science: 10 // OK
     });
 
-    // Math: 50%, French: 100%, Science: 100% → Moyenne: 83%
-    expect(score).toBeCloseTo(83, 0);
+    // Math: 35%, French: 70%, Science: 70% -> Moyenne: ~58%
+    expect(score).toBeCloseTo(58, 0);
   });
 
   it('devrait gérer des requirements partiels', () => {
@@ -257,7 +257,28 @@ describe('calculateReadinessScore', () => {
       math: 15
     });
 
-    // 10 / 15 * 100 = 66.67%
-    expect(score).toBeCloseTo(67, 0);
+    // 10 / 15 * 70 = 46.67%
+    expect(score).toBeCloseTo(47, 0);
+  });
+
+  it('devrait retourner 70 quand les stats sont exactement au minimum requis', () => {
+    const exactProfile: UserProfile = {
+      ...baseProfile,
+      stats: {
+        math: 12,
+        french: 11,
+        science: 10,
+        average: 11
+      }
+    };
+
+    const score = calculateReadinessScore(exactProfile, {
+      math: 12,
+      french: 11,
+      science: 10,
+      average: 11
+    });
+
+    expect(score).toBe(70);
   });
 });
