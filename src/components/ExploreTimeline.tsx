@@ -26,6 +26,7 @@ interface ExploreTimelineProps {
   userStats?: UserStats; // Optionnel, utilise les mock stats par défaut
   initialPath?: UserPathStep[];
   onPathChange?: (path: UserPathStep[]) => void;
+  onShowFormationDetails?: (nodeId: number) => void;
 }
 
 /**
@@ -50,7 +51,8 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
   startingNodeId,
   userStats: initialUserStats = MOCK_USER_STATS,
   initialPath,
-  onPathChange
+  onPathChange,
+  onShowFormationDetails
 }) => {
   const startingNode = useMemo(
     () => NODES.find((node) => node.id === startingNodeId) ?? null,
@@ -428,6 +430,17 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
           >
             <ChevronLeft size={18} /> Retour
           </motion.button>
+
+          {currentNode && onShowFormationDetails && (
+            <motion.button
+              onClick={() => onShowFormationDetails(currentNode.id)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-600 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm md:text-base text-amber-100"
+            >
+              📚 Voir détails formation
+            </motion.button>
+          )}
 
           <motion.div className="text-gray-400 text-sm md:text-base" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {exploreState.path.length} étape(s)

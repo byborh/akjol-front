@@ -32,6 +32,7 @@ export const useAkJolApp = () => {
   );
   const [pendingImportSession, setPendingImportSession] = useState<LifeSession | null>(null);
   const [importPreview, setImportPreview] = useState<SharedLifePreview | null>(null);
+  const [selectedFormationNodeId, setSelectedFormationNodeId] = useState<number | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -351,12 +352,16 @@ export const useAkJolApp = () => {
     setImportFeedback('Import annule.');
   };
 
-  const handleOpenFormations = () => {
+  const handleOpenFormations = (nodeId?: number) => {
+    if (nodeId) {
+      setSelectedFormationNodeId(nodeId);
+    }
     setView('formations');
   };
 
   const handleCloseFormations = () => {
     // Retour à la vue précédente (home ou explore selon l'état de la session active)
+    setSelectedFormationNodeId(null);
     if (activeSession && (activeSession.path.length > 0 || activeSession.startingNodeId)) {
       setView('explore');
     } else {
@@ -382,6 +387,7 @@ export const useAkJolApp = () => {
     selectedShareTtlMs,
     importPreview,
     activeSession,
+    selectedFormationNodeId,
     setEmail,
     setPassword,
     setActiveSessionId,

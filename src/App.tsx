@@ -67,6 +67,7 @@ const App = () => {
             startingNodeId={app.activeSession.startingNodeId}
             initialPath={app.activeSession.path}
             onPathChange={app.handlePathChange}
+            onShowFormationDetails={app.handleOpenFormations}
           />
           <button
             onClick={app.handleBackToHome}
@@ -77,7 +78,12 @@ const App = () => {
         </div>
       )}
 
-      {app.view === 'formations' && <FormationExplorer onClose={app.handleCloseFormations} />}
+      {app.view === 'formations' && (
+        <FormationExplorer 
+          onClose={app.handleCloseFormations}
+          selectedNodeId={app.selectedFormationNodeId}
+        />
+      )}
 
       <ImportPreviewModal
         preview={app.importPreview}

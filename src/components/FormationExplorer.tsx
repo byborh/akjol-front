@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { NODES, SCHOOLS, getSchoolsByNodeId } from '../data/mockData';
 import type { Node, School } from '../types';
 
@@ -7,14 +7,26 @@ type FilterType = 'all' | 'BAC' | 'ETUDE_SUP' | 'METIER';
 
 export interface FormationExplorerProps {
   onClose: () => void;
+  selectedNodeId?: number | null;
 }
 
-export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose }) => {
+export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, selectedNodeId }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('formations');
   const [selectedFormation, setSelectedFormation] = useState<Node | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pré-sélectionner la formation si elle provient de la simulation
+  useEffect(() => {
+    if (selectedNodeId) {
+      const node = NODES.find((n) => n.id === selectedNodeId);
+      if (node) {
+        setSelectedFormation(node);
+        setViewMode('formations');
+      }
+    }
+  }, [selectedNodeId]);
 
   // Filtered & Searched Formations
   const filteredFormations = useMemo(() => {
@@ -48,6 +60,20 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose })
     });
     return counts;
   }, []);
+
+  // Handler pour naviguer vers une école depuis une formation
+  const handleGoToSchool = (school: School) => {
+    setViewMode('schools');
+    setSelectedSchool(school);
+    setSelectedFormation(null);
+  };
+
+  // Handler pour naviguer vers une formation depuis une école
+  const handleGoToFormation = (formation: Node) => {
+    setViewMode('formations');
+    setSelectedFormation(formation);
+    setSelectedSchool(null);
+  };
 
   const getFormationTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -246,19 +272,22 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose })
                     {schoolsForFormation.length > 0 ? (
                       <div className="space-y-2">
                         {schoolsForFormation.map((school) => (
-                          <div
+                          <button
                             key={school.id}
-                            className="bg-gray-600 rounded p-3 flex justify-between items-start"
+                            onClick={() => handleGoToSchool(school)}
+                            className="w-full text-left bg-gray-600 hover:bg-gray-500 rounded p-3 flex justify-between items-start transition-colors cursor-pointer group"
                           >
                             <div>
-                              <div className="font-semibold text-white">{school.name}</div>
+                              <div className="font-semibold text-white group-hover:text-blue-300">
+                                {school.name} →
+                              </div>
                               <div className="text-sm text-gray-300">{school.city}</div>
                             </div>
                             <div className="text-right">
                               <div className="text-lg font-bold text-yellow-400">★ {school.rating}</div>
                               <div className="text-xs text-gray-400">/5</div>
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     ) : (
@@ -297,14 +326,17 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose })
                   {formationsForSchool.length > 0 ? (
                     <div className="space-y-3">
                       {formationsForSchool.map((formation) => (
-                        <div
+                        <button
                           key={formation.id}
-                          className={`bg-gradient-to-r ${formation.color} rounded-lg p-4 text-white`}
+                          onClick={() => handleGoToFormation(formation)}
+                          className={`w-full text-left bg-gradient-to-r ${formation.color} rounded-lg p-4 text-white hover:opacity-90 transition-opacity cursor-pointer group`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="text-3xl">{formation.icon}</div>
                             <div className="flex-1">
-                              <div className="font-bold text-lg">{formation.title}</div>
+                              <div className="font-bold text-lg group-hover:underline">
+                                {formation.title} →
+                              </div>
                               <div className="text-sm text-white/80 mt-1">
                                 {formation.description}
                               </div>
@@ -313,7 +345,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose })
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   ) : (
