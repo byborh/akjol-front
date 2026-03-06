@@ -86,12 +86,12 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-800">
+      <div className="bg-[#F8F9FA] dark:bg-[#121212] rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-[#E2E8F0] dark:border-[#27272A] shadow-xl transition-colors duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-8 py-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-white">Formations & Établissements</h2>
-            <p className="text-blue-100 mt-1">Explorez les formations et leurs établissements</p>
+            <p className="text-white/90 mt-1">Explorez les formations et leurs établissements</p>
           </div>
           <button
             onClick={onClose}
@@ -102,7 +102,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
         </div>
 
         {/* View Mode Toggle */}
-        <div className="bg-gray-800 px-8 py-4 flex gap-4 border-b border-gray-700">
+        <div className="bg-[#E2E8F0] dark:bg-[#27272A] px-8 py-4 flex gap-4 border-b border-[#E2E8F0] dark:border-[#27272A] transition-colors">
           <button
             onClick={() => {
               setViewMode('formations');
@@ -110,8 +110,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'formations'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                ? 'bg-[#8B5CF6] text-white'
+                : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
             }`}
           >
             📚 Formations & Écoles
@@ -123,8 +123,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'schools'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                ? 'bg-[#8B5CF6] text-white'
+                : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
             }`}
           >
             🏢 Établissements & Formations
@@ -134,19 +134,19 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
         {/* Content */}
         <div className="flex-1 overflow-hidden flex">
           {/* Sidebar */}
-          <div className="w-96 bg-gray-800 border-r border-gray-700 overflow-y-auto flex flex-col">
+          <div className="w-96 bg-[#E2E8F0] dark:bg-[#27272A] border-r border-[#E2E8F0] dark:border-[#27272A] overflow-y-auto flex flex-col transition-colors">
             {viewMode === 'formations' ? (
               <>
                 {/* Filter Section */}
-                <div className="p-4 border-b border-gray-700">
+                <div className="p-4 border-b border-[#E2E8F0] dark:border-[#27272A]">
                   <div className="mb-3">
-                    <label className="text-sm font-semibold text-gray-300 block mb-2">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
                       Type de formation
                     </label>
                     <select
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value as FilterType)}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                     >
                       <option value="all">Tous les types</option>
                       <option value="BAC">🎓 Baccalauréat</option>
@@ -155,7 +155,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-gray-300 block mb-2">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
                       Rechercher
                     </label>
                     <input
@@ -163,7 +163,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Nom, description..."
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       className={`w-full text-left p-3 rounded-lg transition-colors ${
                         selectedFormation?.id === formation.id
                           ? `${formation.color} bg-gradient-to-r text-white font-semibold`
-                          : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                          : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
                       }`}
                     >
                       <div className="font-medium text-sm">{formation.icon} {formation.title}</div>
@@ -198,8 +198,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       onClick={() => setSelectedSchool(school)}
                       className={`w-full text-left p-3 rounded-lg transition-colors ${
                         selectedSchool?.id === school.id
-                          ? 'bg-purple-600 text-white font-semibold'
-                          : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                          ? 'bg-[#8B5CF6] text-white font-semibold'
+                          : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
                       }`}
                     >
                       <div className="font-medium text-sm">🏢 {school.name}</div>
@@ -218,7 +218,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
           </div>
 
           {/* Detail Panel */}
-          <div className="flex-1 overflow-y-auto p-6 bg-gray-850">
+          <div className="flex-1 overflow-y-auto p-6 bg-[#F8F9FA] dark:bg-[#121212] transition-colors">
             {viewMode === 'formations' ? (
               selectedFormation ? (
                 <div className="space-y-6">
@@ -233,13 +233,13 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
 
                   {/* Metadata */}
                   {Object.keys(selectedFormation.metadata || {}).length > 0 && (
-                    <div className="bg-gray-700 rounded-lg p-4">
-                      <h4 className="font-bold text-white mb-3">Informations</h4>
+                    <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-3">Informations</h4>
                       <div className="grid grid-cols-2 gap-3">
                         {Object.entries(selectedFormation.metadata || {}).map(([key, value]) => (
-                          <div key={key} className="bg-gray-600 rounded p-3">
-                            <div className="text-xs text-gray-300 uppercase font-semibold">{key}</div>
-                            <div className="text-white mt-1">
+                          <div key={key} className="bg-white dark:bg-[#27272A] rounded p-3 border border-[#E2E8F0] dark:border-[#27272A]">
+                            <div className="text-xs text-gray-700 dark:text-gray-300 uppercase font-semibold">{key}</div>
+                            <div className="text-gray-900 dark:text-white mt-1">
                               {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                             </div>
                           </div>
@@ -251,13 +251,13 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                   {/* Requirements */}
                   {selectedFormation.requirements && 
                     Object.keys(selectedFormation.requirements).length > 0 && (
-                    <div className="bg-gray-700 rounded-lg p-4">
-                      <h4 className="font-bold text-white mb-3">Prérequis</h4>
+                    <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-3">Prérequis</h4>
                       <div className="grid grid-cols-2 gap-3">
                         {Object.entries(selectedFormation.requirements).map(([key, value]) => (
-                          <div key={key} className="bg-gray-600 rounded p-3">
-                            <div className="text-xs text-gray-300 uppercase font-semibold">{key}</div>
-                            <div className="text-white mt-1">{String(value)}</div>
+                          <div key={key} className="bg-white dark:bg-[#27272A] rounded p-3 border border-[#E2E8F0] dark:border-[#27272A]">
+                            <div className="text-xs text-gray-700 dark:text-gray-300 uppercase font-semibold">{key}</div>
+                            <div className="text-gray-900 dark:text-white mt-1">{String(value)}</div>
                           </div>
                         ))}
                       </div>
@@ -265,8 +265,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                   )}
 
                   {/* Schools for this Formation */}
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+                  <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                       🏢 Établissements offrant cette formation ({schoolsForFormation.length})
                     </h4>
                     {schoolsForFormation.length > 0 ? (
@@ -275,13 +275,13 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                           <button
                             key={school.id}
                             onClick={() => handleGoToSchool(school)}
-                            className="w-full text-left bg-gray-600 hover:bg-gray-500 rounded p-3 flex justify-between items-start transition-colors cursor-pointer group"
+                            className="w-full text-left bg-white dark:bg-[#27272A] hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46] rounded p-3 flex justify-between items-start transition-colors cursor-pointer group border border-[#E2E8F0] dark:border-[#27272A]"
                           >
                             <div>
-                              <div className="font-semibold text-white group-hover:text-blue-300">
+                              <div className="font-semibold text-gray-900 dark:text-white group-hover:text-[#8B5CF6]">
                                 {school.name} →
                               </div>
-                              <div className="text-sm text-gray-300">{school.city}</div>
+                              <div className="text-sm text-gray-700 dark:text-gray-300">{school.city}</div>
                             </div>
                             <div className="text-right">
                               <div className="text-lg font-bold text-yellow-400">★ {school.rating}</div>
@@ -291,14 +291,14 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                         ))}
                       </div>
                     ) : (
-                      <div className="text-gray-400 text-sm italic">
+                      <div className="text-gray-600 dark:text-gray-400 text-sm italic">
                         Aucun établissement trouvé
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-gray-600 dark:text-gray-400">
                   <div className="text-center">
                     <p className="text-lg">📚</p>
                     <p>Sélectionnez une formation pour voir les détails</p>
@@ -308,7 +308,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
             ) : selectedSchool ? (
               <div className="space-y-6">
                 {/* School Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 text-white">
+                <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-lg p-6 text-white">
                   <div className="text-5xl mb-3">🏢</div>
                   <h3 className="text-3xl font-bold mb-2">{selectedSchool.name}</h3>
                   <p className="text-white/90">{selectedSchool.city}</p>
@@ -319,8 +319,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                 </div>
 
                 {/* Formations Offered */}
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+                <div className="bg-[#E2E8F0] dark:bg-[#27272A] rounded-lg p-4 transition-colors">
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     📚 Formation proposée
                   </h4>
                   {formationsForSchool.length > 0 ? (
@@ -349,14 +349,14 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       ))}
                     </div>
                   ) : (
-                    <div className="text-gray-400 text-sm italic">
+                      <div className="text-gray-600 dark:text-gray-400 text-sm italic">
                       Aucune formation trouvée
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-400">
+              <div className="h-full flex items-center justify-center text-gray-600 dark:text-gray-400">
                 <div className="text-center">
                   <p className="text-lg">🏢</p>
                   <p>Sélectionnez un établissement pour voir les formations</p>

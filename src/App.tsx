@@ -26,7 +26,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#121212] transition-colors duration-200">
       <AppHeader
         sessions={app.sessions}
         activeSessionId={app.activeSessionId}

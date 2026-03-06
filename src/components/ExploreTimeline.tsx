@@ -225,18 +225,18 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
   }, [exploreState.path, onPathChange]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-[#E2E8F0] to-[#F8F9FA] dark:from-[#121212] dark:via-[#27272A] dark:to-[#121212] text-gray-900 dark:text-[#F3F4F6] overflow-hidden transition-colors duration-200">
       {/* HEADER */}
       <motion.header
-        className="sticky top-0 z-40 bg-gray-800/50 backdrop-blur-lg border-b border-gray-700 px-4 md:px-6 py-3 md:py-4"
+        className="sticky top-0 z-40 bg-white/95 dark:bg-[#27272A]/95 backdrop-blur-lg border-b border-[#E2E8F0] dark:border-[#27272A] px-4 md:px-6 py-3 md:py-4 transition-colors"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-            <h1 className="text-2xl md:text-3xl font-bold">AkJol Simulator</h1>
-            <p className="text-gray-400 text-xs md:text-sm">Explorez votre chemin d'orientation</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-[#F3F4F6]">AkJol Simulator</h1>
+            <p className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">Explorez votre chemin d'orientation</p>
           </motion.div>
 
           {/* Breadcrumb / Path indicator */}
@@ -246,7 +246,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                 return (
                   <React.Fragment key={`${step?.node.id}-${step?.school.id}-${idx}`}>
                     <motion.span
-                      className="text-gray-300 truncate whitespace-nowrap flex-shrink-0"
+                      className="text-gray-700 dark:text-gray-300 truncate whitespace-nowrap flex-shrink-0"
                       initial={{ opacity: 0, x: exploreState.direction === 'right' ? 20 : -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: exploreState.direction === 'right' ? -20 : 20 }}
@@ -254,7 +254,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                     >
                       {step?.node.title} · {step?.school.name}
                     </motion.span>
-                    {idx < exploreState.path.length - 1 && <span className="text-gray-500 flex-shrink-0">→</span>}
+                    {idx < exploreState.path.length - 1 && <span className="text-gray-500 dark:text-gray-600 flex-shrink-0">→</span>}
                   </React.Fragment>
                 );
               })}
@@ -290,7 +290,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
               <div className="flex flex-col gap-3 md:gap-4 flex-1">
                 {column.nodes.length === 0 ? (
                   <motion.div
-                    className="text-center py-12 text-gray-500"
+                    className="text-center py-12 text-gray-600 dark:text-gray-400"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -322,8 +322,8 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                           riskLevel={node.riskLevel}
                         />
                         {selectedSchool && (
-                          <p className="mt-2 text-xs text-gray-400 px-1">
-                            Établissement : <span className="text-gray-300">{selectedSchool.name} ({selectedSchool.city})</span>
+                          <p className="mt-2 text-xs text-gray-600 dark:text-gray-400 px-1">
+                            Établissement : <span className="text-gray-900 dark:text-gray-300">{selectedSchool.name} ({selectedSchool.city})</span>
                           </p>
                         )}
                       </motion.div>
@@ -426,7 +426,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
             disabled={exploreState.path.length <= 1}
             whileHover={{ scale: exploreState.path.length > 1 ? 1.05 : 1 }}
             whileTap={{ scale: 0.95 }}
-            className="w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed px-4 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm md:text-base"
+            className="w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed px-4 md:px-6 py-2 md:py-3 bg-[#E2E8F0] dark:bg-[#27272A] hover:bg-[#CBD5E1] dark:hover:bg-[#3F3F46] rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-sm md:text-base text-gray-900 dark:text-[#F3F4F6]"
           >
             <ChevronLeft size={18} /> Retour
           </motion.button>
@@ -436,13 +436,13 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
               onClick={() => onShowFormationDetails(currentNode.id)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-600 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm md:text-base text-amber-100"
+              className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 border border-[#8B5CF6] rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-sm md:text-base text-[#8B5CF6]"
             >
               📚 Voir détails formation
             </motion.button>
           )}
 
-          <motion.div className="text-gray-400 text-sm md:text-base" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+          <motion.div className="text-gray-600 dark:text-gray-400 text-sm md:text-base" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {exploreState.path.length} étape(s)
           </motion.div>
         </motion.div>
