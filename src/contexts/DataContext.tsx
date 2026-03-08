@@ -15,10 +15,12 @@ interface DataContextType {
   edges: Edge[];
   isLoading: boolean;
   error: Error | null;
+  hasMore: boolean;
   getSchoolsByNodeId: (nodeId: number) => School[];
   getNextPathways: (nodeId: number) => Node[];
   getNodeById: (id: number) => Node | undefined;
   pruneUnusedData: (currentPath: number[], currentNodeId: number) => void;
+  loadMoreData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -33,6 +35,14 @@ export function DataProvider({ children }: DataProviderProps) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadedCount, setLoadedCount] = useState(0);
+
+  // Cache global pour éviter de recharger à chaque nouvelle vie
+  const [dataCache, setDataCache] = useState<{
+    allNodes: Node[];
+    allSchools: School[];
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -42,9 +52,24 @@ export function DataProvider({ children }: DataProviderProps) {
         setIsLoading(true);
         setError(null);
 
-        console.log('📡 Chargement des données depuis les APIs ONISEP...');
+        // Si les données sont déjà en cache, charger les 50 premières
+        if (dataCache) {
+          console.log('📦 Utilisation du cache (pas de rechargement API)');
+          const initialNodes = dataCache.allNodes.slice(0, 50);
+          const initialSchools = dataCache.allSchools.slice(0, 150);
+          
+          setNodes(initialNodes);
+          setSchools(initialSchools);
+          setEdges(generateEdgesFromNodes(initialNodes));
+          setLoadedCount(50);
+          setHasMore(dataCache.allNodes.length > 50);
+          setIsLoading(false);
+          return;
+        }
 
-        // Charger les données depuis les APIs
+        console.log('📡 Chargement initial (50 premières formations)...');
+
+        // Charger les données depuis les APIs (une seule fois)
         const { nodes: apiNodes, schools: apiSchools } = await loadDataFromAPIs();
 
         if (!mounted) return;
@@ -53,16 +78,25 @@ export function DataProvider({ children }: DataProviderProps) {
           throw new Error('Aucune formation récupérée depuis l\'API');
         }
 
-        // Générer les edges automatiquement
-        const generatedEdges = generateEdgesFromNodes(apiNodes);
+        // Mettre en cache TOUTES les données
+        setDataCache({
+          allNodes: apiNodes,
+          allSchools: apiSchools
+        });
 
-        setNodes(apiNodes);
-        setSchools(apiSchools);
-        setEdges(generatedEdges);
+        // Afficher seulement les 50 premières
+        const initialNodes = apiNodes.slice(0, 50);
+        const initialSchools = apiSchools.slice(0, 150);
 
-        console.log(`✅ ${apiNodes.length} formations chargées`);
-        console.log(`✅ ${apiSchools.length} établissements chargés`);
-        console.log(`✅ ${generatedEdges.length} connexions générées`);
+        setNodes(initialNodes);
+        setSchools(initialSchools);
+        setEdges(generateEdgesFromNodes(initialNodes));
+        setLoadedCount(50);
+        setHasMore(apiNodes.length > 50);
+
+        console.log(`✅ ${initialNodes.length}/\${apiNodes.length} formations affichées`);
+        console.log(`✅ ${initialSchools.length}/\${apiSchools.length} établissements affichés`);
+        console.log(`💡 Cliquer sur "Charger plus" pour voir les autres formations`);
 
       } catch (err) {
         if (!mounted) return;
@@ -78,9 +112,12 @@ export function DataProvider({ children }: DataProviderProps) {
           
           if (!mounted) return;
           
-          setNodes(NODES);
-          setSchools(SCHOOLS);
+          setNodes(NODES.slice(0, 50));
+          setSchools(SCHOOLS.slice(0, 150));
           setEdges(EDGES);
+          setDataCache({ allNodes: NODES, allSchools: SCHOOLS });
+          setLoadedCount(50);
+          setHasMore(NODES.length > 50);
           setError(null);
           
           console.log('✅ Fallback chargé avec succès');
@@ -99,7 +136,7 @@ export function DataProvider({ children }: DataProviderProps) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, []); // Pas de dépendance = chargement une seule fois !
 
   // Fonction helper: obtenir les écoles d'une formation
   const getSchoolsByNodeId = (nodeId: number): School[] => {
@@ -117,6 +154,40 @@ export function DataProvider({ children }: DataProviderProps) {
   // Fonction helper: obtenir un nœud par ID
   const getNodeById = (id: number): Node | undefined => {
     return nodes.find(n => n.id === id);
+  };
+
+  /**
+   * Charge progressivement 50 formations supplémentaires depuis le cache
+   */
+  const loadMoreData = async () => {
+    if (!dataCache || !hasMore) {
+      console.log('⚠️  Pas de données supplémentaires à charger');
+      return;
+    }
+
+    console.log(`📦 Chargement de 50 formations supplémentaires (${loadedCount} → ${loadedCount + 50})...`);
+
+    // Charger les 50 formations suivantes
+    const nextBatch = dataCache.allNodes.slice(loadedCount, loadedCount + 50);
+    const updatedNodes = [...nodes, ...nextBatch];
+
+    // Charger quelques établissements supplémentaires (ratio 3:1)
+    const nextSchools = dataCache.allSchools.slice(
+      Math.floor(loadedCount * 1.5), 
+      Math.floor((loadedCount + 50) * 1.5)
+    );
+    const updatedSchools = [...schools, ...nextSchools];
+
+    // Régénérer les edges pour inclure les nouvelles formations
+    const updatedEdges = generateEdgesFromNodes(updatedNodes);
+
+    setNodes(updatedNodes);
+    setSchools(updatedSchools);
+    setEdges(updatedEdges);
+    setLoadedCount(prev => prev + 50);
+    setHasMore(loadedCount + 50 < dataCache.allNodes.length);
+
+    console.log(`✅ ${updatedNodes.length}/${dataCache.allNodes.length} formations affichées`);
   };
 
   /**
@@ -186,6 +257,8 @@ export function DataProvider({ children }: DataProviderProps) {
     edges,
     isLoading,
     error,
+    hasMore,
+    loadMoreData,
     getSchoolsByNodeId,
     getNextPathways,
     getNodeById,

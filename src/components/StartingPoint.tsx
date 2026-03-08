@@ -24,7 +24,7 @@ const normalizeSearchValue = (value: string) =>
     .toLowerCase();
 
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
-  const { nodes } = useData();
+  const { nodes, hasMore, loadMoreData } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [advancedSearch, setAdvancedSearch] = useState(false);
   
@@ -95,7 +95,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         className="relative py-12 md:py-20 px-4 md:px-6 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.3 }}
       >
         <motion.div className="absolute inset-0 bg-gradient-to-r from-[#8B5CF6]/10 via-[#7C3AED]/10 to-[#8B5CF6]/10 blur-3xl" />
 
@@ -112,7 +112,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             className="text-3xl md:text-5xl lg:text-6xl font-black mb-3 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#7C3AED] to-[#8B5CF6]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
           >
             Bienvenue sur AkJol
           </motion.h1>
@@ -121,7 +121,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             className="text-base md:text-lg lg:text-xl text-gray-700 dark:text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
+            transition={{ duration: 0.2, delay: 0.2 }}
           >
             Le Moteur de Simulation de Vie. Où êtes-vous maintenant ?
             <span className="block text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -136,7 +136,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         className="px-4 md:px-6 mb-10 md:mb-12 max-w-4xl mx-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
+        transition={{ duration: 0.2, delay: 0.15 }}
       >
         <div className="relative">
           <motion.div
@@ -196,7 +196,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
                 className="h-1 w-12 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-full"
                 initial={{ scaleX: 0 }}
                 whileInView={{ scaleX: 1 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.2 }}
               />
               <span>
                 {type === 'BAC' && '🎓 Niveau Bac'}
@@ -231,12 +231,35 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           </motion.div>
         ))}
 
+        {/* Bouton "Charger plus" - visible uniquement quand pas de recherche active et qu'il reste des données */}
+        {!debouncedSearchTerm && hasMore && filteredNodes.length > 0 && (
+          <motion.div
+            className="flex justify-center mt-8 md:mt-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <button
+              onClick={loadMoreData}
+              className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#8B5CF6] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-3 text-sm md:text-base"
+            >
+              <span>Charger 50 formations supplémentaires</span>
+              <motion.span
+                animate={{ y: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                ↓
+              </motion.span>
+            </button>
+          </motion.div>
+        )}
+
         {filteredNodes.length === 0 && (
           <motion.div
             className="text-center py-16 md:py-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.2 }}
           >
             <p className="text-gray-600 dark:text-gray-400 text-base md:text-lg">Aucun résultat pour "{searchTerm}"</p>
             <p className="text-gray-600 dark:text-gray-500 text-xs md:text-sm mt-2">Essayez une autre recherche</p>

@@ -241,7 +241,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
         className="sticky top-0 z-40 bg-white/95 dark:bg-[#27272A]/95 backdrop-blur-lg border-b border-[#E2E8F0] dark:border-[#27272A] px-4 md:px-6 py-3 md:py-4 transition-colors"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.2 }}
       >
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
@@ -260,7 +260,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                       initial={{ opacity: 0, x: exploreState.direction === 'right' ? 20 : -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: exploreState.direction === 'right' ? -20 : 20 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {step?.node.title} · {step?.school.name}
                     </motion.span>
@@ -283,7 +283,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
               className="flex flex-col"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: colIdx * 0.1 }}
+              transition={{ duration: 0.15, delay: colIdx * 0.05 }}
             >
               {/* Column Header */}
               <motion.div className="mb-4 md:mb-6" whileInView={{ x: [0, 4, 0] }} transition={{ duration: 2, repeat: Infinity }}>
@@ -292,7 +292,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
                   className="h-1 w-20 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-full"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.6, delay: 0.2 + colIdx * 0.1 }}
+                  transition={{ duration: 0.2, delay: 0.1 + colIdx * 0.05 }}
                 />
               </motion.div>
 
