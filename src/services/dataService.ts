@@ -54,8 +54,13 @@ export async function loadDataFromAPIs(): Promise<{
     // Fetch parallélisé
     const { formations, etablissements } = await fetchAllDataFromAPIs();
 
-    // Mapper toutes les formations en Nodes (recherche exhaustive)
-    const nodes = formations.map((raw, index) => mapRawFormationToNode(raw, index + 1));
+    // Échantillonnage intelligent pour performances
+    // On prend un échantillon diversifié plutôt que tout charger
+    const sampleFormations = sampleDiverseFormations(formations, 800);
+    const sampleEtablissements = etablissements.slice(0, 2000);
+
+    // Mapper les formations échantillonnées en Nodes
+    const nodes = sampleFormations.map((raw, index) => mapRawFormationToNode(raw, index + 1));
 
     if (nodes.length === 0) {
       throw new Error('Aucune formation récupérée depuis l\'API ONISEP');
@@ -63,8 +68,8 @@ export async function loadDataFromAPIs(): Promise<{
 
     // Mapper les établissements en Schools
     // Associer chaque école à une formation (relation 1-to-N)
-    const schools = etablissements.map((raw, index) => {
-      const nodeId = (index % nodes.length) + 1; // Distribuer sur l'ensemble des formations
+    const schools = sampleEtablissements.map((raw, index) => {
+      const nodeId = (index % nodes.length) + 1; // Distribuer sur les formations
       return mapRawEtablissementToSchool(raw, index + 1, nodeId);
     });
 
@@ -80,6 +85,38 @@ export async function loadDataFromAPIs(): Promise<{
     console.error('❌ Erreur lors du chargement des APIs:', error);
     throw error;
   }
+}
+
+/**
+ * Échantillonne les formations de manière diversifiée
+ * Prend un mix de différents types pour avoir une représentation équilibrée
+ */
+function sampleDiverseFormations(formations: any[], maxCount: number): any[] {
+  // Grouper par type pour échantillonner de manière équilibrée
+  const byType: Record<string, any[]> = {};
+  
+  formations.forEach(f => {
+    const type = String(f.libelle_type_formation || 'Autre');
+    if (!byType[type]) byType[type] = [];
+    byType[type].push(f);
+  });
+
+  // Calculer combien prendre de chaque type
+  const types = Object.keys(byType);
+  const perType = Math.ceil(maxCount / types.length);
+
+  // Prendre un échantillon de chaque type
+  const sampled: any[] = [];
+  types.forEach(type => {
+    const items = byType[type];
+    // Prendre régulièrement espacé pour diversité
+    const step = Math.max(1, Math.floor(items.length / perType));
+    for (let i = 0; i < items.length && sampled.length < maxCount; i += step) {
+      sampled.push(items[i]);
+    }
+  });
+
+  return sampled.slice(0, maxCount);
 }
 
 /**
@@ -120,15 +157,14 @@ export async function getSchools(): Promise<School[]> {
 }
 
 /**
- * Crée des EDGES (arêtes du graphe) de manière intelligente
+ * Crée des EDGES (arêtes du graphe) de manière intelligente ET OPTIMISÉE
  * 
- * Logique:
- * - Tous les BAC peuvent mener vers ETUDE_SUP (connexions basées sur domaines)
- * - Tous les ETUDE_SUP peuvent mener vers METIER (connexions basées sur domaines)
- * - CERTIF accessible depuis ETUDE_SUP
+ * Logique OPTIMISÉE pour performances:
+ * - Limite stricte du nombre de connexions par nœud
+ * - Évite les boucles imbriquées massives
  * 
  * @param nodes - Array de nœuds
- * @returns Edge[] - Arêtes générées
+ * @returns Edge[] - Arêtes générées (limitées pour performances)
  */
 export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
   const edges: Edge[] = [];
@@ -142,30 +178,22 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
     CERTIF: nodes.filter(n => n.type === 'CERTIF'),
   };
 
-  // Helper: trouve les domaines d'un nœud
+  // Helper: trouve les domaines d'un nœud (version optimisée)
   const getDomains = (node: Node): string[] => {
     const domains: string[] = [];
     
-    // Extraire des métadonnées
     if (node.metadata?.domaine) {
       domains.push(String(node.metadata.domaine).toLowerCase());
     }
-    if (node.metadata?.sous_domaine) {
-      domains.push(String(node.metadata.sous_domaine).toLowerCase());
-    }
     
-    // Extraire du titre/description
-    const text = `${node.title} ${node.description}`.toLowerCase();
-    if (text.includes('science') || text.includes('scientifique')) domains.push('sciences');
-    if (text.includes('littéraire') || text.includes('lettres')) domains.push('lettres');
-    if (text.includes('économique') || text.includes('économie')) domains.push('economie');
-    if (text.includes('technologique') || text.includes('technologie')) domains.push('technologie');
-    if (text.includes('professionnel') || text.includes('pro')) domains.push('professionnel');
-    if (text.includes('art') || text.includes('artistique')) domains.push('arts');
-    if (text.includes('sport') || text.includes('eps')) domains.push('sport');
-    if (text.includes('santé') || text.includes('médical')) domains.push('sante');
-    if (text.includes('social') || text.includes('humanitaire')) domains.push('social');
-    if (text.includes('informatique') || text.includes('numérique')) domains.push('informatique');
+    const text = node.title.toLowerCase();
+    if (text.includes('science')) domains.push('sciences');
+    if (text.includes('littéraire')) domains.push('lettres');
+    if (text.includes('économ')) domains.push('economie');
+    if (text.includes('techno')) domains.push('technologie');
+    if (text.includes('pro')) domains.push('professionnel');
+    if (text.includes('art')) domains.push('arts');
+    if (text.includes('informatique')) domains.push('informatique');
     
     return domains.length > 0 ? domains : ['general'];
   };
@@ -176,117 +204,105 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
     return domains1.some(d1 => domains2.includes(d1));
   };
 
-  // BAC → ETUDE_SUP (connexions intelligentes basées sur domaines)
-  nodesByType.BAC.forEach(bac => {
+  // BAC → ETUDE_SUP (LIMITE STRICTE: seulement les premiers BAC)
+  const limitedBAC = nodesByType.BAC.slice(0, Math.min(200, nodesByType.BAC.length));
+  limitedBAC.forEach(bac => {
     const bacDomains = getDomains(bac);
-    const compatibleEtudes = nodesByType.ETUDE_SUP.filter(etude => 
-      domainsMatch(bacDomains, getDomains(etude))
-    );
+    let added = 0;
     
-    // Limite à 8 connexions max par BAC pour éviter l'explosion
-    compatibleEtudes.slice(0, 8).forEach(etude => {
-      edges.push({
-        id: edgeId++,
-        source_id: bac.id,
-        target_id: etude.id,
-        requirements: {
-          difficulty: 'Medium',
-          average: 10,
-        },
-      });
-    });
-    
-    // Si aucune connexion compatible, connecter au moins à quelques ETUDE_SUP généraux
-    if (compatibleEtudes.length === 0) {
-      nodesByType.ETUDE_SUP.slice(0, 3).forEach(etude => {
+    // Chercher jusqu'à 5 ETUDE_SUP compatibles maximum
+    for (const etude of nodesByType.ETUDE_SUP) {
+      if (added >= 5) break;
+      if (domainsMatch(bacDomains, getDomains(etude))) {
         edges.push({
           id: edgeId++,
           source_id: bac.id,
           target_id: etude.id,
-          requirements: {
-            difficulty: 'Medium',
-            average: 10,
-          },
+          requirements: { difficulty: 'Medium', average: 10 },
+        });
+        added++;
+      }
+    }
+    
+    // Fallback: connecter à au moins 2 ETUDE_SUP
+    if (added === 0) {
+      nodesByType.ETUDE_SUP.slice(0, 2).forEach(etude => {
+        edges.push({
+          id: edgeId++,
+          source_id: bac.id,
+          target_id: etude.id,
+          requirements: { difficulty: 'Medium', average: 10 },
         });
       });
     }
   });
 
-  // ETUDE_SUP → METIER (connexions basées sur domaines)
-  nodesByType.ETUDE_SUP.forEach(etude => {
+  // ETUDE_SUP → METIER (LIMITE STRICTE: premiers ETUDE_SUP)
+  const limitedETUDE = nodesByType.ETUDE_SUP.slice(0, Math.min(300, nodesByType.ETUDE_SUP.length));
+  limitedETUDE.forEach(etude => {
     const etudeDomains = getDomains(etude);
-    const compatibleMetiers = nodesByType.METIER.filter(metier =>
-      domainsMatch(etudeDomains, getDomains(metier))
-    );
+    let added = 0;
     
-    // Limite à 5 métiers max par ETUDE_SUP
-    compatibleMetiers.slice(0, 5).forEach(metier => {
-      edges.push({
-        id: edgeId++,
-        source_id: etude.id,
-        target_id: metier.id,
-        requirements: {
-          difficulty: 'Hard',
-          average: 12,
-        },
-      });
-    });
-    
-    // Fallback si aucune correspondance
-    if (compatibleMetiers.length === 0 && nodesByType.METIER.length > 0) {
-      nodesByType.METIER.slice(0, 2).forEach(metier => {
+    // Chercher jusqu'à 3 métiers compatibles
+    for (const metier of nodesByType.METIER) {
+      if (added >= 3) break;
+      if (domainsMatch(etudeDomains, getDomains(metier))) {
         edges.push({
           id: edgeId++,
           source_id: etude.id,
           target_id: metier.id,
-          requirements: {
-            difficulty: 'Hard',
-            average: 12,
-          },
+          requirements: { difficulty: 'Hard', average: 12 },
         });
+        added++;
+      }
+    }
+    
+    // Fallback
+    if (added === 0 && nodesByType.METIER.length > 0) {
+      edges.push({
+        id: edgeId++,
+        source_id: etude.id,
+        target_id: nodesByType.METIER[0].id,
+        requirements: { difficulty: 'Hard', average: 12 },
       });
     }
   });
 
-  // ETUDE_SUP → CERTIF (accès alternatif pour tous)
-  nodesByType.ETUDE_SUP.forEach(etude => {
-    // Limite à 2 certifs par ETUDE_SUP
-    nodesByType.CERTIF.slice(0, 2).forEach(certif => {
+  // ETUDE_SUP → CERTIF (limité aux premiers)
+  nodesByType.ETUDE_SUP.slice(0, 100).forEach(etude => {
+    nodesByType.CERTIF.slice(0, 1).forEach(certif => {
       edges.push({
         id: edgeId++,
         source_id: etude.id,
         target_id: certif.id,
-        requirements: {
-          difficulty: 'Easy',
-          average: 8,
-        },
+        requirements: { difficulty: 'Easy', average: 8 },
       });
     });
   });
 
-  // BAC → METIER direct (pour bacs professionnels)
-  nodesByType.BAC.filter(bac => 
-    getDomains(bac).includes('professionnel') || bac.title.toLowerCase().includes('pro')
-  ).forEach(bacPro => {
-    const bacDomains = getDomains(bacPro);
-    const compatibleMetiers = nodesByType.METIER.filter(metier =>
-      domainsMatch(bacDomains, getDomains(metier))
-    );
-    
-    compatibleMetiers.slice(0, 3).forEach(metier => {
-      edges.push({
-        id: edgeId++,
-        source_id: bacPro.id,
-        target_id: metier.id,
-        requirements: {
-          difficulty: 'Medium',
-          average: 10,
-        },
-      });
+  // BAC Pro → METIER direct (très limité)
+  nodesByType.BAC
+    .filter(bac => getDomains(bac).includes('professionnel'))
+    .slice(0, 50)
+    .forEach(bacPro => {
+      const bacDomains = getDomains(bacPro);
+      let added = 0;
+      
+      for (const metier of nodesByType.METIER) {
+        if (added >= 2) break;
+        if (domainsMatch(bacDomains, getDomains(metier))) {
+          edges.push({
+            id: edgeId++,
+            source_id: bacPro.id,
+            target_id: metier.id,
+            requirements: { difficulty: 'Medium', average: 10 },
+          });
+          added++;
+        }
+      }
     });
-  });
 
-  console.log(`🔗 ${edges.length} connexions générées entre ${nodes.length} nœuds`);
+  console.log(`🔗 ${edges.length} connexions générées entre ${nodes.length} nœuds (optimisé)`);
   console.log(`   - ${nodesByType.BAC.length} BAC`);
   console.log(`   - ${nodesByType.ETUDE_SUP.length} ETUDE_SUP`);
   console.log(`   - ${nodesByType.METIER.length} METIER`);

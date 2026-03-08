@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useDebounce } from '../hooks/useDebounce';
 import type { Node, School } from '../types';
 
 type ViewMode = 'formations' | 'schools';
@@ -29,6 +30,10 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
   const [searchTermSchool, setSearchTermSchool] = useState('');
   const [filterCity, setFilterCity] = useState<string>('all');
 
+  // Debounce des recherches pour performances
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const debouncedSearchTermSchool = useDebounce(searchTermSchool, 300);
+
   // Pré-sélectionner la formation si elle provient de la simulation
   useEffect(() => {
     if (selectedNodeId) {
@@ -48,7 +53,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
 
   // Filtered & Searched Formations
   const filteredFormations = useMemo(() => {
-    const normalizedSearchTerm = normalizeSearchValue(searchTerm.trim());
+    const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
 
     return nodes.filter((node) => {
       const typeMatch = filterType === 'all' || node.type === filterType;
@@ -70,11 +75,11 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       const searchMatch = normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       return typeMatch && searchMatch;
     });
-  }, [filterType, searchTerm, nodes]);
+  }, [filterType, debouncedSearchTerm, nodes]);
 
   // Filtered & Searched Schools
   const filteredSchools = useMemo(() => {
-    const normalizedSchoolSearchTerm = normalizeSearchValue(searchTermSchool.trim());
+    const normalizedSchoolSearchTerm = normalizeSearchValue(debouncedSearchTermSchool.trim());
 
     return schools.filter((school) => {
       const cityMatch = filterCity === 'all' || school.city === filterCity;
@@ -87,7 +92,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       const searchMatch = normalizeSearchValue(schoolSearchableText).includes(normalizedSchoolSearchTerm);
       return cityMatch && searchMatch;
     });
-  }, [filterCity, searchTermSchool, schools]);
+  }, [filterCity, debouncedSearchTermSchool, schools]);
 
   // Schools for selected formation
   const schoolsForFormation = useMemo(() => {

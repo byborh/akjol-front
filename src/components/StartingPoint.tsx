@@ -9,6 +9,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Search } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useDebounce } from '../hooks/useDebounce';
 import type { Node } from '../types';
 import NodeCard from './NodeCard';
 
@@ -25,11 +26,14 @@ const normalizeSearchValue = (value: string) =>
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
   const { nodes } = useData();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Debounce pour éviter trop de re-renders
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Filtrer les nœuds selon la recherche
   const filteredNodes = useMemo(() => {
-    if (!searchTerm) return nodes;
-    const normalizedSearchTerm = normalizeSearchValue(searchTerm.trim());
+    if (!debouncedSearchTerm) return nodes;
+    const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
 
     return nodes.filter(
       (n) => {
@@ -45,7 +49,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         return normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       }
     );
-  }, [searchTerm, nodes]);
+  }, [debouncedSearchTerm, nodes]);
 
   // Grouper par type pour meilleure UX
   const nodesByType = useMemo(() => {
@@ -144,6 +148,17 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             whileFocus={{ scale: 1.02 }}
           />
         </div>
+        
+        {/* Compteur de résultats */}
+        {debouncedSearchTerm && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 text-sm text-gray-600 dark:text-gray-400 text-center"
+          >
+            {filteredNodes.length} résultat{filteredNodes.length > 1 ? 's' : ''} trouvé{filteredNodes.length > 1 ? 's' : ''}
+          </motion.div>
+        )}
       </motion.div>
 
       {/* NODES GRID BY TYPE */}
