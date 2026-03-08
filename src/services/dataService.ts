@@ -8,8 +8,6 @@
  */
 
 import { 
-  fetchFormationsFromAPI, 
-  fetchEtablissementsFromAPI,
   fetchAllDataFromAPIs 
 } from './apiService';
 import { 

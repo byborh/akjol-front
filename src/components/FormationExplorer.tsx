@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { NODES, SCHOOLS, getSchoolsByNodeId } from '../data/mockData';
+import { useData } from '../contexts/DataContext';
 import type { Node, School } from '../types';
 
 type ViewMode = 'formations' | 'schools';
@@ -11,6 +11,8 @@ export interface FormationExplorerProps {
 }
 
 export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, selectedNodeId }) => {
+  const { nodes, schools, getSchoolsByNodeId, getNodeById } = useData();
+  
   const [viewMode, setViewMode] = useState<ViewMode>('formations');
   const [selectedFormation, setSelectedFormation] = useState<Node | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -24,61 +26,61 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
   // Pré-sélectionner la formation si elle provient de la simulation
   useEffect(() => {
     if (selectedNodeId) {
-      const node = NODES.find((n) => n.id === selectedNodeId);
+      const node = getNodeById(selectedNodeId);
       if (node) {
         setSelectedFormation(node);
         setViewMode('formations');
       }
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeId, getNodeById]);
 
   // Liste des villes uniques pour le filtre
   const uniqueCities = useMemo(() => {
-    const cities = SCHOOLS.map(school => school.city);
+    const cities = schools.map(school => school.city);
     return ['all', ...Array.from(new Set(cities)).sort()];
-  }, []);
+  }, [schools]);
 
   // Filtered & Searched Formations
   const filteredFormations = useMemo(() => {
-    return NODES.filter((node) => {
+    return nodes.filter((node) => {
       const typeMatch = filterType === 'all' || node.type === filterType;
       const searchMatch =
         node.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         node.description.toLowerCase().includes(searchTerm.toLowerCase());
       return typeMatch && searchMatch;
     });
-  }, [filterType, searchTerm]);
+  }, [filterType, searchTerm, nodes]);
 
   // Filtered & Searched Schools
   const filteredSchools = useMemo(() => {
-    return SCHOOLS.filter((school) => {
+    return schools.filter((school) => {
       const cityMatch = filterCity === 'all' || school.city === filterCity;
       const searchMatch = school.name.toLowerCase().includes(searchTermSchool.toLowerCase());
       return cityMatch && searchMatch;
     });
-  }, [filterCity, searchTermSchool]);
+  }, [filterCity, searchTermSchool, schools]);
 
   // Schools for selected formation
   const schoolsForFormation = useMemo(() => {
     if (!selectedFormation) return [];
     return getSchoolsByNodeId(selectedFormation.id);
-  }, [selectedFormation]);
+  }, [selectedFormation, getSchoolsByNodeId]);
 
   // Formations for selected school
   const formationsForSchool = useMemo(() => {
     if (!selectedSchool) return [];
-    return NODES.filter((node) => node.id === selectedSchool.node_id);
-  }, [selectedSchool]);
+    return nodes.filter((node) => node.id === selectedSchool.node_id);
+  }, [selectedSchool, nodes]);
 
   // Count formations per school
   const formationsCountBySchool = useMemo(() => {
     const counts: Record<number, number> = {};
-    SCHOOLS.forEach((school) => {
-      const formationCount = NODES.filter((node) => node.id === school.node_id).length;
+    schools.forEach((school) => {
+      const formationCount = nodes.filter((node) => node.id === school.node_id).length;
       counts[school.id] = formationCount;
     });
     return counts;
-  }, []);
+  }, [schools, nodes]);
 
   // Handler pour naviguer vers une école depuis une formation
   const handleGoToSchool = (school: School) => {

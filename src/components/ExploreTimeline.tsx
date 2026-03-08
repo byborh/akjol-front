@@ -9,7 +9,8 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import type { Node, ExploreState, UserStats, RandomEvent, School, UserPathStep } from '../types';
-import { NODES, getNextPathways, getSchoolsByNodeId, MOCK_USER_STATS } from '../data/mockData';
+import { useData } from '../contexts/DataContext';
+import { MOCK_USER_STATS } from '../data/mockData';
 import { calculateSuccessProbability } from '../services/probabilityService';
 import { rollForEvent, applyEventEffects } from '../services/eventService';
 import NodeCard from './NodeCard';
@@ -54,13 +55,15 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
   onPathChange,
   onShowFormationDetails
 }) => {
+  const { nodes, getSchoolsByNodeId, getNextPathways, getNodeById } = useData();
+  
   const startingNode = useMemo(
-    () => NODES.find((node) => node.id === startingNodeId) ?? null,
-    [startingNodeId]
+    () => getNodeById(startingNodeId) ?? null,
+    [startingNodeId, getNodeById]
   );
   const fallbackSchool = useMemo(
     () => getSchoolsByNodeId(startingNodeId)[0] ?? null,
-    [startingNodeId]
+    [startingNodeId, getSchoolsByNodeId]
   );
 
   // État de l'exploration
@@ -89,13 +92,14 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
 
   // Nœud actuellement sélectionné
   const currentNode = useMemo(
-    () => NODES.find((n) => n.id === exploreState.currentNodeId),
-    [exploreState.currentNodeId]
+    () => getNodeById(exploreState.currentNodeId ?? 0),
+    [exploreState.currentNodeId, getNodeById]
   );
 
   // Les nœuds accessibles depuis le nœud actuel (Colonne du milieu)
   const nextPathways = useMemo(() => getNextPathways(exploreState.currentNodeId || 0), [
-    exploreState.currentNodeId
+    exploreState.currentNodeId,
+    getNextPathways
   ]);
 
   // Les nœuds au-delà (floutés tant que choix non fait)
@@ -105,12 +109,12 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
       const nextNext = getNextPathways(pathway.id);
       nextNext.forEach((nn) => furtherNodes.add(nn.id));
     });
-    return Array.from(furtherNodes).map((id) => NODES.find((n) => n.id === id)).filter(Boolean) as Node[];
-  }, [nextPathways]);
+    return Array.from(furtherNodes).map((id) => getNodeById(id)).filter(Boolean) as Node[];
+  }, [nextPathways, getNextPathways, getNodeById]);
 
   // Navigation - Sélectionner un nœud suivant
   const handleSelectPathway = useCallback((nodeId: number) => {
-    const targetNode = NODES.find((node) => node.id === nodeId);
+    const targetNode = getNodeById(nodeId);
     if (!targetNode) return;
 
     // Éviter les doublons dans le path

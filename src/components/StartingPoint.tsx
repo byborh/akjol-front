@@ -8,7 +8,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Search } from 'lucide-react';
-import { NODES } from '../data/mockData';
+import { useData } from '../contexts/DataContext';
 import type { Node } from '../types';
 import NodeCard from './NodeCard';
 
@@ -17,19 +17,20 @@ interface StartingPointProps {
 }
 
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
+  const { nodes } = useData();
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filtrer les nœuds selon la recherche
   const filteredNodes = useMemo(() => {
-    if (!searchTerm) return NODES;
+    if (!searchTerm) return nodes;
     const lower = searchTerm.toLowerCase();
-    return NODES.filter(
+    return nodes.filter(
       (n) =>
         n.title.toLowerCase().includes(lower) ||
         n.description.toLowerCase().includes(lower) ||
         n.slug.toLowerCase().includes(lower)
     );
-  }, [searchTerm]);
+  }, [searchTerm, nodes]);
 
   // Grouper par type pour meilleure UX
   const nodesByType = useMemo(() => {
