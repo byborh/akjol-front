@@ -21,6 +21,7 @@ interface DataContextType {
   getNodeById: (id: number) => Node | undefined;
   pruneUnusedData: (currentPath: number[], currentNodeId: number) => void;
   loadMoreData: () => Promise<void>;
+  loadAllDataForSearch: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -191,6 +192,26 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   /**
+   * Charge TOUTES les formations du cache pour permettre une recherche exhaustive
+   */
+  const loadAllDataForSearch = () => {
+    if (!dataCache) {
+      console.log('⚠️  Pas de données en cache');
+      return;
+    }
+
+    console.log(`🔍 Chargement de TOUTES les formations pour la recherche (${dataCache.allNodes.length} formations)...`);
+
+    setNodes(dataCache.allNodes);
+    setSchools(dataCache.allSchools);
+    setEdges(generateEdgesFromNodes(dataCache.allNodes));
+    setLoadedCount(dataCache.allNodes.length);
+    setHasMore(false);
+
+    console.log(`✅ ${dataCache.allNodes.length} formations chargées pour recherche exhaustive`);
+  };
+
+  /**
    * OPTIMISATION: Nettoie les données inutilisées pour libérer de la mémoire
    * Garde uniquement:
    * - Les nœuds du parcours actuel
@@ -259,6 +280,7 @@ export function DataProvider({ children }: DataProviderProps) {
     error,
     hasMore,
     loadMoreData,
+    loadAllDataForSearch,
     getSchoolsByNodeId,
     getNextPathways,
     getNodeById,

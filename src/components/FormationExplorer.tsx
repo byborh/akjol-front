@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { useDebounce } from '../hooks/useDebounce';
 import type { Node, School } from '../types';
 
 type ViewMode = 'formations' | 'schools';
@@ -18,23 +17,48 @@ export interface FormationExplorerProps {
 }
 
 export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, selectedNodeId }) => {
-  const { nodes, schools, getSchoolsByNodeId, getNodeById } = useData();
+  const { nodes, schools, getSchoolsByNodeId, getNodeById, loadAllDataForSearch } = useData();
   
   const [viewMode, setViewMode] = useState<ViewMode>('formations');
   const [selectedFormation, setSelectedFormation] = useState<Node | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState(''); // Recherche active (après clic bouton)
   const [advancedSearch, setAdvancedSearch] = useState(false); // Toggle recherche approfondie
   const [displayLimit, setDisplayLimit] = useState(50); // Limite d'affichage pour performances
   
   // States pour les écoles
   const [searchTermSchool, setSearchTermSchool] = useState('');
+  const [activeSearchTermSchool, setActiveSearchTermSchool] = useState(''); // Recherche active écoles
   const [filterCity, setFilterCity] = useState<string>('all');
 
-  // Debounce des recherches pour performances
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const debouncedSearchTermSchool = useDebounce(searchTermSchool, 300);
+  // Fonctions de recherche
+  const handleSearchFormations = () => {
+    if (searchTerm.trim()) {
+      console.log(`🔍 Recherche formations: "${searchTerm}"`);
+      loadAllDataForSearch();
+      setActiveSearchTerm(searchTerm);
+    }
+  };
+
+  const handleSearchSchools = () => {
+    if (searchTermSchool.trim()) {
+      console.log(`🔍 Recherche établissements: "${searchTermSchool}"`);
+      loadAllDataForSearch();
+      setActiveSearchTermSchool(searchTermSchool);
+    }
+  };
+
+  const handleClearSearchFormations = () => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+  };
+
+  const handleClearSearchSchools = () => {
+    setSearchTermSchool('');
+    setActiveSearchTermSchool('');
+  };
 
   // Pré-sélectionner la formation si elle provient de la simulation
   useEffect(() => {
@@ -55,7 +79,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
 
   // Filtered & Searched Formations (OPTIMISÉ: recherche par titre par défaut)
   const filteredFormations = useMemo(() => {
-    const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
+    const normalizedSearchTerm = normalizeSearchValue(activeSearchTerm.trim());
 
     return nodes.filter((node) => {
       const typeMatch = filterType === 'all' || node.type === filterType;
@@ -84,11 +108,11 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       const searchMatch = normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       return typeMatch && searchMatch;
     });
-  }, [filterType, debouncedSearchTerm, nodes, advancedSearch]);
+  }, [filterType, activeSearchTerm, nodes, advancedSearch]);
 
   // Filtered & Searched Schools (recherche simple: nom + ville)
   const filteredSchools = useMemo(() => {
-    const normalizedSchoolSearchTerm = normalizeSearchValue(debouncedSearchTermSchool.trim());
+    const normalizedSchoolSearchTerm = normalizeSearchValue(activeSearchTermSchool.trim());
 
     return schools.filter((school) => {
       const cityMatch = filterCity === 'all' || school.city === filterCity;
@@ -101,7 +125,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       const nameMatch = normalizeSearchValue(school.name).includes(normalizedSchoolSearchTerm);
       return cityMatch && nameMatch;
     });
-  }, [filterCity, debouncedSearchTermSchool, schools]);
+  }, [filterCity, activeSearchTermSchool, schools]);
 
   // Schools for selected formation
   const schoolsForFormation = useMemo(() => {
@@ -127,11 +151,11 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
   // Réinitialiser la limite d'affichage quand la recherche change
   useEffect(() => {
     setDisplayLimit(50);
-  }, [debouncedSearchTerm, filterType]);
+  }, [activeSearchTerm, filterType]);
 
   useEffect(() => {
     setDisplayLimit(50);
-  }, [debouncedSearchTermSchool, filterCity]);
+  }, [activeSearchTermSchool, filterCity]);
 
   // Count formations per school
   const formationsCountBySchool = useMemo(() => {
@@ -240,13 +264,35 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
                       Rechercher
                     </label>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder={advancedSearch ? "Recherche approfondie..." : "Nom de formation..."}
-                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && searchTerm.trim()) {
+                            handleSearchFormations();
+                          }
+                        }}
+                        placeholder={advancedSearch ? "Recherche approfondie..." : "Nom de formation..."}
+                        className="flex-1 bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                      />
+                      <button
+                        onClick={handleSearchFormations}
+                        disabled={!searchTerm.trim()}
+                        className="px-3 py-2 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#8B5CF6] text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        🔍
+                      </button>
+                      {activeSearchTerm && (
+                        <button
+                          onClick={handleClearSearchFormations}
+                          className="px-3 py-2 bg-[#E2E8F0] dark:bg-[#3F3F46] hover:bg-[#CBD5E1] dark:hover:bg-[#52525B] text-gray-900 dark:text-[#F3F4F6] font-semibold rounded-lg transition-all duration-200 text-sm"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                     
                     {/* Toggle recherche approfondie */}
                     <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-gray-600 dark:text-gray-400">
@@ -260,9 +306,9 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                     </label>
                     
                     {/* Compteur de résultats */}
-                    {debouncedSearchTerm && (
-                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        {filteredFormations.length} résultat{filteredFormations.length > 1 ? 's' : ''}
+                    {activeSearchTerm && (
+                      <div className="mt-2 text-xs text-[#8B5CF6] font-medium">
+                        {filteredFormations.length} résultat{filteredFormations.length > 1 ? 's' : ''} pour "{activeSearchTerm}"
                       </div>
                     )}
                   </div>
@@ -323,13 +369,40 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
                       Rechercher
                     </label>
-                    <input
-                      type="text"
-                      value={searchTermSchool}
-                      onChange={(e) => setSearchTermSchool(e.target.value)}
-                      placeholder="Nom de l'établissement..."
-                      className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={searchTermSchool}
+                        onChange={(e) => setSearchTermSchool(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && searchTermSchool.trim()) {
+                            handleSearchSchools();
+                          }
+                        }}
+                        placeholder="Nom de l'établissement..."
+                        className="flex-1 bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                      />
+                      <button
+                        onClick={handleSearchSchools}
+                        disabled={!searchTermSchool.trim()}
+                        className="px-3 py-2 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#8B5CF6] text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        🔍
+                      </button>
+                      {activeSearchTermSchool && (
+                        <button
+                          onClick={handleClearSearchSchools}
+                          className="px-3 py-2 bg-[#E2E8F0] dark:bg-[#3F3F46] hover:bg-[#CBD5E1] dark:hover:bg-[#52525B] text-gray-900 dark:text-[#F3F4F6] font-semibold rounded-lg transition-all duration-200 text-sm"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    {activeSearchTermSchool && (
+                      <div className="mt-2 text-xs text-[#8B5CF6] font-medium">
+                        {filteredSchools.length} résultat{filteredSchools.length > 1 ? 's' : ''} pour "{activeSearchTermSchool}"
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -9,7 +9,6 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Search } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { useDebounce } from '../hooks/useDebounce';
 import type { Node } from '../types';
 import NodeCard from './NodeCard';
 
@@ -24,17 +23,30 @@ const normalizeSearchValue = (value: string) =>
     .toLowerCase();
 
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
-  const { nodes, hasMore, loadMoreData } = useData();
+  const { nodes, hasMore, loadMoreData, loadAllDataForSearch } = useData();
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState(''); // Terme de recherche actif (après clic bouton)
   const [advancedSearch, setAdvancedSearch] = useState(false);
   
-  // Debounce pour éviter trop de re-renders
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Fonction pour lancer la recherche
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      console.log(`🔍 Recherche lancée: "${searchTerm}"`);
+      loadAllDataForSearch(); // Charger toutes les formations
+      setActiveSearchTerm(searchTerm); // Activer la recherche
+    }
+  };
+
+  // Réinitialiser la recherche
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+  };
 
   // Filtrer les nœuds selon la recherche (OPTIMISÉ)
   const filteredNodes = useMemo(() => {
-    if (!debouncedSearchTerm) return nodes;
-    const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
+    if (!activeSearchTerm) return nodes;
+    const normalizedSearchTerm = normalizeSearchValue(activeSearchTerm.trim());
 
     return nodes.filter(
       (n) => {
@@ -56,7 +68,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         return normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       }
     );
-  }, [debouncedSearchTerm, nodes, advancedSearch]);
+  }, [activeSearchTerm, nodes, advancedSearch]);
 
   // Grouper par type pour meilleure UX
   const nodesByType = useMemo(() => {
@@ -138,22 +150,48 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: 0.15 }}
       >
-        <div className="relative">
-          <motion.div
-            className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400"
-            animate={{ rotate: searchTerm ? 0 : 360 }}
-            transition={{ duration: searchTerm ? 0.2 : 2, repeat: searchTerm ? 0 : Infinity }}
+        <div className="flex gap-2 md:gap-3">
+          <div className="relative flex-1">
+            <motion.div
+              className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400"
+              animate={{ rotate: searchTerm ? 0 : 360 }}
+              transition={{ duration: searchTerm ? 0.2 : 2, repeat: searchTerm ? 0 : Infinity }}
+            >
+              <Search size={18} className="md:w-5 md:h-5" />
+            </motion.div>
+            <motion.input
+              type="text"
+              placeholder={advancedSearch ? "Recherche approfondie (tous les champs)..." : "Cherchez votre situation (ex: Bac, BTS, Licence...)"}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchTerm.trim()) {
+                  handleSearch();
+                }
+              }}
+              className="w-full bg-[#E2E8F0] dark:bg-[#27272A] border-2 border-[#E2E8F0] dark:border-[#27272A] rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-gray-900 dark:text-[#F3F4F6] placeholder-gray-600 dark:placeholder-gray-400 focus:border-[#8B5CF6] focus:outline-none transition-colors"
+              whileFocus={{ scale: 1.02 }}
+            />
+          </div>
+
+          {/* Bouton Rechercher */}
+          <button
+            onClick={handleSearch}
+            disabled={!searchTerm.trim()}
+            className="px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#8B5CF6] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base whitespace-nowrap"
           >
-            <Search size={18} className="md:w-5 md:h-5" />
-          </motion.div>
-          <motion.input
-            type="text"
-            placeholder={advancedSearch ? "Recherche approfondie (tous les champs)..." : "Cherchez votre situation (ex: Bac, BTS, Licence...)"}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#E2E8F0] dark:bg-[#27272A] border-2 border-[#E2E8F0] dark:border-[#27272A] rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-gray-900 dark:text-[#F3F4F6] placeholder-gray-600 dark:placeholder-gray-400 focus:border-[#8B5CF6] focus:outline-none transition-colors"
-            whileFocus={{ scale: 1.02 }}
-          />
+            🔍 Rechercher
+          </button>
+
+          {/* Bouton Effacer (si recherche active) */}
+          {activeSearchTerm && (
+            <button
+              onClick={handleClearSearch}
+              className="px-3 md:px-4 py-2.5 md:py-3 bg-[#E2E8F0] dark:bg-[#27272A] hover:bg-[#CBD5E1] dark:hover:bg-[#3F3F46] text-gray-900 dark:text-[#F3F4F6] font-semibold rounded-xl transition-all duration-200 text-sm md:text-base whitespace-nowrap"
+            >
+              ✕
+            </button>
+          )}
         </div>
         
         {/* Toggle recherche approfondie + Compteur de résultats */}
@@ -168,13 +206,13 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
             <span>🔍 Recherche approfondie (description, domaines, niveau...)</span>
           </label>
           
-          {debouncedSearchTerm && (
+          {activeSearchTerm && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               className="text-xs md:text-sm font-medium text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1 rounded-full"
             >
-              {filteredNodes.length} résultat{filteredNodes.length > 1 ? 's' : ''}
+              {filteredNodes.length} résultat{filteredNodes.length > 1 ? 's' : ''} pour "{activeSearchTerm}"
             </motion.div>
           )}
         </div>
@@ -232,7 +270,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         ))}
 
         {/* Bouton "Charger plus" - visible uniquement quand pas de recherche active et qu'il reste des données */}
-        {!debouncedSearchTerm && hasMore && filteredNodes.length > 0 && (
+        {!activeSearchTerm && hasMore && filteredNodes.length > 0 && (
           <motion.div
             className="flex justify-center mt-8 md:mt-12"
             initial={{ opacity: 0, y: 20 }}
