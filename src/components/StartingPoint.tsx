@@ -16,6 +16,12 @@ interface StartingPointProps {
   onSelect: (nodeId: number) => void;
 }
 
+const normalizeSearchValue = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
   const { nodes } = useData();
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,12 +29,21 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
   // Filtrer les nœuds selon la recherche
   const filteredNodes = useMemo(() => {
     if (!searchTerm) return nodes;
-    const lower = searchTerm.toLowerCase();
+    const normalizedSearchTerm = normalizeSearchValue(searchTerm.trim());
+
     return nodes.filter(
-      (n) =>
-        n.title.toLowerCase().includes(lower) ||
-        n.description.toLowerCase().includes(lower) ||
-        n.slug.toLowerCase().includes(lower)
+      (n) => {
+        const searchableText = [
+          n.title,
+          n.description,
+          n.slug,
+          String(n.metadata?.type_official || ''),
+          String(n.metadata?.level || ''),
+          Array.isArray(n.metadata?.domains) ? n.metadata.domains.join(' ') : ''
+        ].join(' ');
+
+        return normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
+      }
     );
   }, [searchTerm, nodes]);
 

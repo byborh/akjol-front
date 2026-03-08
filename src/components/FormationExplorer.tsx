@@ -5,6 +5,12 @@ import type { Node, School } from '../types';
 type ViewMode = 'formations' | 'schools';
 type FilterType = 'all' | 'BAC' | 'ETUDE_SUP' | 'METIER';
 
+const normalizeSearchValue = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 export interface FormationExplorerProps {
   onClose: () => void;
   selectedNodeId?: number | null;
@@ -42,20 +48,43 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
 
   // Filtered & Searched Formations
   const filteredFormations = useMemo(() => {
+    const normalizedSearchTerm = normalizeSearchValue(searchTerm.trim());
+
     return nodes.filter((node) => {
       const typeMatch = filterType === 'all' || node.type === filterType;
-      const searchMatch =
-        node.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        node.description.toLowerCase().includes(searchTerm.toLowerCase());
+      if (!normalizedSearchTerm) {
+        return typeMatch;
+      }
+
+      const searchableText = [
+        node.title,
+        node.description,
+        node.slug,
+        String(node.metadata?.type_official || ''),
+        String(node.metadata?.level || ''),
+        Array.isArray(node.metadata?.domains) ? node.metadata.domains.join(' ') : ''
+      ]
+        .join(' ')
+        .trim();
+
+      const searchMatch = normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       return typeMatch && searchMatch;
     });
   }, [filterType, searchTerm, nodes]);
 
   // Filtered & Searched Schools
   const filteredSchools = useMemo(() => {
+    const normalizedSchoolSearchTerm = normalizeSearchValue(searchTermSchool.trim());
+
     return schools.filter((school) => {
       const cityMatch = filterCity === 'all' || school.city === filterCity;
-      const searchMatch = school.name.toLowerCase().includes(searchTermSchool.toLowerCase());
+
+      if (!normalizedSchoolSearchTerm) {
+        return cityMatch;
+      }
+
+      const schoolSearchableText = `${school.name} ${school.city}`;
+      const searchMatch = normalizeSearchValue(schoolSearchableText).includes(normalizedSchoolSearchTerm);
       return cityMatch && searchMatch;
     });
   }, [filterCity, searchTermSchool, schools]);

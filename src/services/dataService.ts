@@ -54,19 +54,19 @@ export async function loadDataFromAPIs(): Promise<{
     // Fetch parallélisé
     const { formations, etablissements } = await fetchAllDataFromAPIs();
 
-    // Mapper les formations en Nodes
-    const nodes = formations
-      .slice(0, 100) // Limiter à 100 pour éviter les surcharges (ajuster selon besoin)
-      .map((raw, index) => mapRawFormationToNode(raw, index + 1));
+    // Mapper toutes les formations en Nodes (recherche exhaustive)
+    const nodes = formations.map((raw, index) => mapRawFormationToNode(raw, index + 1));
+
+    if (nodes.length === 0) {
+      throw new Error('Aucune formation récupérée depuis l\'API ONISEP');
+    }
 
     // Mapper les établissements en Schools
     // Associer chaque école à une formation (relation 1-to-N)
-    const schools = etablissements
-      .slice(0, 300) // Limiter à 300
-      .map((raw, index) => {
-        const nodeId = (index % nodes.length) + 1; // Distribuer sur les formations
-        return mapRawEtablissementToSchool(raw, index + 1, nodeId);
-      });
+    const schools = etablissements.map((raw, index) => {
+      const nodeId = (index % nodes.length) + 1; // Distribuer sur l'ensemble des formations
+      return mapRawEtablissementToSchool(raw, index + 1, nodeId);
+    });
 
     // Sauvegarder en cache
     cachedNodes = nodes;
