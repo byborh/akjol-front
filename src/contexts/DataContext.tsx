@@ -18,6 +18,7 @@ interface DataContextType {
   getSchoolsByNodeId: (nodeId: number) => School[];
   getNextPathways: (nodeId: number) => Node[];
   getNodeById: (id: number) => Node | undefined;
+  pruneUnusedData: (currentPath: number[], currentNodeId: number) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -118,6 +119,67 @@ export function DataProvider({ children }: DataProviderProps) {
     return nodes.find(n => n.id === id);
   };
 
+  /**
+   * OPTIMISATION: Nettoie les données inutilisées pour libérer de la mémoire
+   * Garde uniquement:
+   * - Les nœuds du parcours actuel
+   * - Le nœud actuel
+   * - Les nœuds accessibles depuis le nœud actuel
+   * - Les nœuds accessibles depuis les nœuds accessibles (horizon +2)
+   */
+  const pruneUnusedData = (currentPath: number[], currentNodeId: number) => {
+    // Calculer les IDs à conserver
+    const keepIds = new Set<number>();
+    
+    // 1. Conserver le parcours actuel
+    currentPath.forEach(id => keepIds.add(id));
+    
+    // 2. Conserver le nœud actuel
+    keepIds.add(currentNodeId);
+    
+    // 3. Conserver les nœuds accessibles depuis le nœud actuel (prochains choix)
+    const nextIds = edges
+      .filter(edge => edge.source_id === currentNodeId)
+      .map(edge => edge.target_id);
+    nextIds.forEach(id => keepIds.add(id));
+    
+    // 4. Conserver les nœuds accessibles depuis les prochains choix (horizon +2)
+    nextIds.forEach(nextId => {
+      const futureIds = edges
+        .filter(edge => edge.source_id === nextId)
+        .map(edge => edge.target_id);
+      futureIds.forEach(id => keepIds.add(id));
+    });
+    
+    // Filtrer les nœuds
+    const prunedNodes = nodes.filter(node => keepIds.has(node.id));
+    
+    // Filtrer les écoles (garder uniquement celles liées aux nœuds conservés)
+    const prunedSchools = schools.filter(school => keepIds.has(school.node_id));
+    
+    // Filtrer les edges (garder uniquement ceux entre nœuds conservés)
+    const prunedEdges = edges.filter(
+      edge => keepIds.has(edge.source_id) && keepIds.has(edge.target_id)
+    );
+    
+    // Mettre à jour les states
+    const removedNodes = nodes.length - prunedNodes.length;
+    const removedSchools = schools.length - prunedSchools.length;
+    const removedEdges = edges.length - prunedEdges.length;
+    
+    if (removedNodes > 0 || removedSchools > 0 || removedEdges > 0) {
+      console.log(`🗑️  Nettoyage des données inutilisées:`);
+      console.log(`   - ${removedNodes} formations supprimées`);
+      console.log(`   - ${removedSchools} établissements supprimés`);
+      console.log(`   - ${removedEdges} connexions supprimées`);
+      console.log(`   ✅ Mémoire libérée!`);
+      
+      setNodes(prunedNodes);
+      setSchools(prunedSchools);
+      setEdges(prunedEdges);
+    }
+  };
+
   const value: DataContextType = {
     nodes,
     schools,
@@ -127,6 +189,7 @@ export function DataProvider({ children }: DataProviderProps) {
     getSchoolsByNodeId,
     getNextPathways,
     getNodeById,
+    pruneUnusedData,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

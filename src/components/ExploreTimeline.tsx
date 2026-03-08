@@ -55,7 +55,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
   onPathChange,
   onShowFormationDetails
 }) => {
-  const { nodes, getSchoolsByNodeId, getNextPathways, getNodeById } = useData();
+  const { nodes, getSchoolsByNodeId, getNextPathways, getNodeById, pruneUnusedData } = useData();
   
   const startingNode = useMemo(
     () => getNodeById(startingNodeId) ?? null,
@@ -226,7 +226,13 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
 
   React.useEffect(() => {
     onPathChange?.(exploreState.path);
-  }, [exploreState.path, onPathChange]);
+    
+    // OPTIMISATION: Nettoyer les données inutilisées à chaque étape
+    if (exploreState.path.length > 1) {
+      const pathIds = exploreState.path.map(step => step.node.id);
+      pruneUnusedData(pathIds, exploreState.currentNodeId);
+    }
+  }, [exploreState.path, exploreState.currentNodeId, onPathChange, pruneUnusedData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-[#E2E8F0] to-[#F8F9FA] dark:from-[#121212] dark:via-[#27272A] dark:to-[#121212] text-gray-900 dark:text-[#F3F4F6] overflow-hidden transition-colors duration-200">

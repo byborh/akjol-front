@@ -25,6 +25,8 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [advancedSearch, setAdvancedSearch] = useState(false); // Toggle recherche approfondie
+  const [displayLimit, setDisplayLimit] = useState(50); // Limite d'affichage pour performances
   
   // States pour les écoles
   const [searchTermSchool, setSearchTermSchool] = useState('');
@@ -51,7 +53,7 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
     return ['all', ...Array.from(new Set(cities)).sort()];
   }, [schools]);
 
-  // Filtered & Searched Formations
+  // Filtered & Searched Formations (OPTIMISÉ: recherche par titre par défaut)
   const filteredFormations = useMemo(() => {
     const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
 
@@ -61,6 +63,13 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
         return typeMatch;
       }
 
+      // RECHERCHE SIMPLE (par défaut): uniquement le titre
+      if (!advancedSearch) {
+        const titleMatch = normalizeSearchValue(node.title).includes(normalizedSearchTerm);
+        return typeMatch && titleMatch;
+      }
+
+      // RECHERCHE APPROFONDIE: tous les champs
       const searchableText = [
         node.title,
         node.description,
@@ -75,9 +84,9 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
       const searchMatch = normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       return typeMatch && searchMatch;
     });
-  }, [filterType, debouncedSearchTerm, nodes]);
+  }, [filterType, debouncedSearchTerm, nodes, advancedSearch]);
 
-  // Filtered & Searched Schools
+  // Filtered & Searched Schools (recherche simple: nom + ville)
   const filteredSchools = useMemo(() => {
     const normalizedSchoolSearchTerm = normalizeSearchValue(debouncedSearchTermSchool.trim());
 
@@ -88,9 +97,9 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
         return cityMatch;
       }
 
-      const schoolSearchableText = `${school.name} ${school.city}`;
-      const searchMatch = normalizeSearchValue(schoolSearchableText).includes(normalizedSchoolSearchTerm);
-      return cityMatch && searchMatch;
+      // Recherche simple: nom de l'école uniquement
+      const nameMatch = normalizeSearchValue(school.name).includes(normalizedSchoolSearchTerm);
+      return cityMatch && nameMatch;
     });
   }, [filterCity, debouncedSearchTermSchool, schools]);
 
@@ -105,6 +114,24 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
     if (!selectedSchool) return [];
     return nodes.filter((node) => node.id === selectedSchool.node_id);
   }, [selectedSchool, nodes]);
+
+  // OPTIMISATION: Limiter l'affichage pour performances
+  const displayedFormations = useMemo(() => {
+    return filteredFormations.slice(0, displayLimit);
+  }, [filteredFormations, displayLimit]);
+
+  const displayedSchools = useMemo(() => {
+    return filteredSchools.slice(0, displayLimit);
+  }, [filteredSchools, displayLimit]);
+
+  // Réinitialiser la limite d'affichage quand la recherche change
+  useEffect(() => {
+    setDisplayLimit(50);
+  }, [debouncedSearchTerm, filterType]);
+
+  useEffect(() => {
+    setDisplayLimit(50);
+  }, [debouncedSearchTermSchool, filterCity]);
 
   // Count formations per school
   const formationsCountBySchool = useMemo(() => {
@@ -217,15 +244,33 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Nom, description..."
+                      placeholder={advancedSearch ? "Recherche approfondie..." : "Nom de formation..."}
                       className="w-full bg-white dark:bg-[#27272A] text-gray-900 dark:text-[#F3F4F6] rounded-lg px-3 py-2 border border-[#E2E8F0] dark:border-[#27272A] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-gray-500 dark:placeholder:text-gray-400"
                     />
+                    
+                    {/* Toggle recherche approfondie */}
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-gray-600 dark:text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={advancedSearch}
+                        onChange={(e) => setAdvancedSearch(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                      />
+                      <span>Recherche approfondie (description, domaines...)</span>
+                    </label>
+                    
+                    {/* Compteur de résultats */}
+                    {debouncedSearchTerm && (
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {filteredFormations.length} résultat{filteredFormations.length > 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Formations List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  {filteredFormations.map((formation) => (
+                  {displayedFormations.map((formation) => (
                     <button
                       key={formation.id}
                       onClick={() => setSelectedFormation(formation)}
@@ -241,6 +286,16 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       </div>
                     </button>
                   ))}
+                  
+                  {/* Bouton "Voir plus" */}
+                  {displayLimit < filteredFormations.length && (
+                    <button
+                      onClick={() => setDisplayLimit(prev => prev + 50)}
+                      className="w-full p-3 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] font-medium text-sm transition-colors"
+                    >
+                      Voir plus ({filteredFormations.length - displayLimit} formations restantes)
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
@@ -286,26 +341,38 @@ export const FormationExplorer: React.FC<FormationExplorerProps> = ({ onClose, s
                       <p className="text-xs mt-1">Essayez une autre recherche</p>
                     </div>
                   ) : (
-                    filteredSchools.map((school) => (
-                    <button
-                      key={school.id}
-                      onClick={() => setSelectedSchool(school)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedSchool?.id === school.id
-                          ? 'bg-[#8B5CF6] text-white font-semibold'
-                          : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">🏢 {school.name}</div>
-                      <div className="text-xs mt-1 opacity-75">{school.city}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="text-xs text-yellow-400">★ {school.rating}/5</div>
-                        <div className="text-xs opacity-60">
-                          • {formationsCountBySchool[school.id] || 0} formation(s)
-                        </div>
-                      </div>
-                    </button>
-                    ))
+                    <>
+                      {displayedSchools.map((school) => (
+                        <button
+                          key={school.id}
+                          onClick={() => setSelectedSchool(school)}
+                          className={`w-full text-left p-3 rounded-lg transition-colors ${
+                            selectedSchool?.id === school.id
+                              ? 'bg-[#8B5CF6] text-white font-semibold'
+                              : 'bg-white dark:bg-[#27272A] text-gray-700 dark:text-gray-200 hover:bg-[#E2E8F0] dark:hover:bg-[#3F3F46]'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">🏢 {school.name}</div>
+                          <div className="text-xs mt-1 opacity-75">{school.city}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="text-xs text-yellow-400">★ {school.rating}/5</div>
+                            <div className="text-xs opacity-60">
+                              • {formationsCountBySchool[school.id] || 0} formation(s)
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      
+                      {/* Bouton "Voir plus" */}
+                      {displayLimit < filteredSchools.length && (
+                        <button
+                          onClick={() => setDisplayLimit(prev => prev + 50)}
+                          className="w-full p-3 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] font-medium text-sm transition-colors"
+                        >
+                          Voir plus ({filteredSchools.length - displayLimit} établissements restants)
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </>

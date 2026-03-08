@@ -26,17 +26,24 @@ const normalizeSearchValue = (value: string) =>
 export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
   const { nodes } = useData();
   const [searchTerm, setSearchTerm] = useState('');
+  const [advancedSearch, setAdvancedSearch] = useState(false);
   
   // Debounce pour éviter trop de re-renders
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Filtrer les nœuds selon la recherche
+  // Filtrer les nœuds selon la recherche (OPTIMISÉ)
   const filteredNodes = useMemo(() => {
     if (!debouncedSearchTerm) return nodes;
     const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm.trim());
 
     return nodes.filter(
       (n) => {
+        // RECHERCHE SIMPLE (par défaut): uniquement le titre
+        if (!advancedSearch) {
+          return normalizeSearchValue(n.title).includes(normalizedSearchTerm);
+        }
+
+        // RECHERCHE APPROFONDIE: tous les champs
         const searchableText = [
           n.title,
           n.description,
@@ -49,7 +56,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
         return normalizeSearchValue(searchableText).includes(normalizedSearchTerm);
       }
     );
-  }, [debouncedSearchTerm, nodes]);
+  }, [debouncedSearchTerm, nodes, advancedSearch]);
 
   // Grouper par type pour meilleure UX
   const nodesByType = useMemo(() => {
@@ -141,7 +148,7 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           </motion.div>
           <motion.input
             type="text"
-            placeholder="Cherchez votre situation (ex: Bac, BTS, Licence...)"
+            placeholder={advancedSearch ? "Recherche approfondie (tous les champs)..." : "Cherchez votre situation (ex: Bac, BTS, Licence...)"}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#E2E8F0] dark:bg-[#27272A] border-2 border-[#E2E8F0] dark:border-[#27272A] rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base text-gray-900 dark:text-[#F3F4F6] placeholder-gray-600 dark:placeholder-gray-400 focus:border-[#8B5CF6] focus:outline-none transition-colors"
@@ -149,16 +156,28 @@ export const StartingPoint: React.FC<StartingPointProps> = ({ onSelect }) => {
           />
         </div>
         
-        {/* Compteur de résultats */}
-        {debouncedSearchTerm && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 text-sm text-gray-600 dark:text-gray-400 text-center"
-          >
-            {filteredNodes.length} résultat{filteredNodes.length > 1 ? 's' : ''} trouvé{filteredNodes.length > 1 ? 's' : ''}
-          </motion.div>
-        )}
+        {/* Toggle recherche approfondie + Compteur de résultats */}
+        <div className="mt-3 flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={advancedSearch}
+              onChange={(e) => setAdvancedSearch(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+            />
+            <span>🔍 Recherche approfondie (description, domaines, niveau...)</span>
+          </label>
+          
+          {debouncedSearchTerm && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-xs md:text-sm font-medium text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1 rounded-full"
+            >
+              {filteredNodes.length} résultat{filteredNodes.length > 1 ? 's' : ''}
+            </motion.div>
+          )}
+        </div>
       </motion.div>
 
       {/* NODES GRID BY TYPE */}
