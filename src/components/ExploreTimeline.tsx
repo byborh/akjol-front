@@ -125,7 +125,7 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
     // Forcer la sélection d'un établissement avant de valider le nœud
     setPendingNode(targetNode);
     setIsSelectingSchool(true);
-  }, [exploreState.path]);
+  }, [exploreState.path, getNodeById]);
 
   // Procède à la navigation après événement (ou sans événement)
   const proceedToNode = useCallback((node: Node, school: School) => {
@@ -464,7 +464,20 @@ export const ExploreTimeline: React.FC<ExploreTimelineProps> = ({
       <SchoolSelector
         isOpen={isSelectingSchool}
         node={pendingNode}
-        schools={pendingNode ? getSchoolsByNodeId(pendingNode.id) : []}
+        schools={pendingNode ? (() => {
+          const availableSchools = getSchoolsByNodeId(pendingNode.id);
+          // Si aucune école n'est disponible, créer une école générique
+          if (availableSchools.length === 0) {
+            return [{
+              id: 999999,
+              name: 'Établissement générique',
+              city: 'France',
+              node_id: pendingNode.id,
+              rating: 3.5
+            }];
+          }
+          return availableSchools;
+        })() : []}
         onSelectSchool={handleConfirmSchool}
         onClose={() => {
           setIsSelectingSchool(false);

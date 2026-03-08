@@ -123,9 +123,9 @@ export async function getSchools(): Promise<School[]> {
  * Crée des EDGES (arêtes du graphe) de manière intelligente
  * 
  * Logique:
- * - ETUDE_SUP peut suivre BAC
- * - METIER peut suivre ETUDE_SUP
- * - CERTIF peut suivre n'importe quoi
+ * - Tous les BAC peuvent mener vers ETUDE_SUP (connexions basées sur domaines)
+ * - Tous les ETUDE_SUP peuvent mener vers METIER (connexions basées sur domaines)
+ * - CERTIF accessible depuis ETUDE_SUP
  * 
  * @param nodes - Array de nœuds
  * @returns Edge[] - Arêtes générées
@@ -142,9 +142,49 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
     CERTIF: nodes.filter(n => n.type === 'CERTIF'),
   };
 
-  // BAC → ETUDE_SUP (mais limiter les connexions)
-  nodesByType.BAC.slice(0, 5).forEach(bac => {
-    nodesByType.ETUDE_SUP.slice(0, 5).forEach(etude => {
+  // Helper: trouve les domaines d'un nœud
+  const getDomains = (node: Node): string[] => {
+    const domains: string[] = [];
+    
+    // Extraire des métadonnées
+    if (node.metadata?.domaine) {
+      domains.push(String(node.metadata.domaine).toLowerCase());
+    }
+    if (node.metadata?.sous_domaine) {
+      domains.push(String(node.metadata.sous_domaine).toLowerCase());
+    }
+    
+    // Extraire du titre/description
+    const text = `${node.title} ${node.description}`.toLowerCase();
+    if (text.includes('science') || text.includes('scientifique')) domains.push('sciences');
+    if (text.includes('littéraire') || text.includes('lettres')) domains.push('lettres');
+    if (text.includes('économique') || text.includes('économie')) domains.push('economie');
+    if (text.includes('technologique') || text.includes('technologie')) domains.push('technologie');
+    if (text.includes('professionnel') || text.includes('pro')) domains.push('professionnel');
+    if (text.includes('art') || text.includes('artistique')) domains.push('arts');
+    if (text.includes('sport') || text.includes('eps')) domains.push('sport');
+    if (text.includes('santé') || text.includes('médical')) domains.push('sante');
+    if (text.includes('social') || text.includes('humanitaire')) domains.push('social');
+    if (text.includes('informatique') || text.includes('numérique')) domains.push('informatique');
+    
+    return domains.length > 0 ? domains : ['general'];
+  };
+
+  // Helper: calcule compatibilité entre domaines
+  const domainsMatch = (domains1: string[], domains2: string[]): boolean => {
+    if (domains1.includes('general') || domains2.includes('general')) return true;
+    return domains1.some(d1 => domains2.includes(d1));
+  };
+
+  // BAC → ETUDE_SUP (connexions intelligentes basées sur domaines)
+  nodesByType.BAC.forEach(bac => {
+    const bacDomains = getDomains(bac);
+    const compatibleEtudes = nodesByType.ETUDE_SUP.filter(etude => 
+      domainsMatch(bacDomains, getDomains(etude))
+    );
+    
+    // Limite à 8 connexions max par BAC pour éviter l'explosion
+    compatibleEtudes.slice(0, 8).forEach(etude => {
       edges.push({
         id: edgeId++,
         source_id: bac.id,
@@ -155,11 +195,32 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
         },
       });
     });
+    
+    // Si aucune connexion compatible, connecter au moins à quelques ETUDE_SUP généraux
+    if (compatibleEtudes.length === 0) {
+      nodesByType.ETUDE_SUP.slice(0, 3).forEach(etude => {
+        edges.push({
+          id: edgeId++,
+          source_id: bac.id,
+          target_id: etude.id,
+          requirements: {
+            difficulty: 'Medium',
+            average: 10,
+          },
+        });
+      });
+    }
   });
 
-  // ETUDE_SUP → METIER (limiter)
-  nodesByType.ETUDE_SUP.slice(0, 5).forEach(etude => {
-    nodesByType.METIER.slice(0, 3).forEach(metier => {
+  // ETUDE_SUP → METIER (connexions basées sur domaines)
+  nodesByType.ETUDE_SUP.forEach(etude => {
+    const etudeDomains = getDomains(etude);
+    const compatibleMetiers = nodesByType.METIER.filter(metier =>
+      domainsMatch(etudeDomains, getDomains(metier))
+    );
+    
+    // Limite à 5 métiers max par ETUDE_SUP
+    compatibleMetiers.slice(0, 5).forEach(metier => {
       edges.push({
         id: edgeId++,
         source_id: etude.id,
@@ -170,10 +231,26 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
         },
       });
     });
+    
+    // Fallback si aucune correspondance
+    if (compatibleMetiers.length === 0 && nodesByType.METIER.length > 0) {
+      nodesByType.METIER.slice(0, 2).forEach(metier => {
+        edges.push({
+          id: edgeId++,
+          source_id: etude.id,
+          target_id: metier.id,
+          requirements: {
+            difficulty: 'Hard',
+            average: 12,
+          },
+        });
+      });
+    }
   });
 
-  // ETUDE_SUP → CERTIF (accès alternatif)
-  nodesByType.ETUDE_SUP.slice(0, 3).forEach(etude => {
+  // ETUDE_SUP → CERTIF (accès alternatif pour tous)
+  nodesByType.ETUDE_SUP.forEach(etude => {
+    // Limite à 2 certifs par ETUDE_SUP
     nodesByType.CERTIF.slice(0, 2).forEach(certif => {
       edges.push({
         id: edgeId++,
@@ -187,6 +264,33 @@ export function generateEdgesFromNodes(nodes: Node[]): Edge[] {
     });
   });
 
-  console.log(`🔗 ${edges.length} connexions générées entre nœuds`);
+  // BAC → METIER direct (pour bacs professionnels)
+  nodesByType.BAC.filter(bac => 
+    getDomains(bac).includes('professionnel') || bac.title.toLowerCase().includes('pro')
+  ).forEach(bacPro => {
+    const bacDomains = getDomains(bacPro);
+    const compatibleMetiers = nodesByType.METIER.filter(metier =>
+      domainsMatch(bacDomains, getDomains(metier))
+    );
+    
+    compatibleMetiers.slice(0, 3).forEach(metier => {
+      edges.push({
+        id: edgeId++,
+        source_id: bacPro.id,
+        target_id: metier.id,
+        requirements: {
+          difficulty: 'Medium',
+          average: 10,
+        },
+      });
+    });
+  });
+
+  console.log(`🔗 ${edges.length} connexions générées entre ${nodes.length} nœuds`);
+  console.log(`   - ${nodesByType.BAC.length} BAC`);
+  console.log(`   - ${nodesByType.ETUDE_SUP.length} ETUDE_SUP`);
+  console.log(`   - ${nodesByType.METIER.length} METIER`);
+  console.log(`   - ${nodesByType.CERTIF.length} CERTIF`);
+  
   return edges;
 }
