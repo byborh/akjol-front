@@ -39,7 +39,7 @@ interface RawEtablissement {
 export async function fetchFormationsFromAPI(): Promise<RawFormation[]> {
   try {
     const response = await fetch(
-      'https://api.opendata.onisep.fr/downloads/5fa591127f501/5fa591127f501.json'
+      '/api/onisep/5fa591127f501/5fa591127f501.json'
     );
     
     if (!response.ok) {
@@ -64,7 +64,7 @@ export async function fetchFormationsFromAPI(): Promise<RawFormation[]> {
 export async function fetchEtablissementsFromAPI(): Promise<RawEtablissement[]> {
   try {
     const response = await fetch(
-      'https://api.opendata.onisep.fr/downloads/5fa586da5c4b6/5fa586da5c4b6.json'
+      '/api/onisep/5fa586da5c4b6/5fa586da5c4b6.json'
     );
     
     if (!response.ok) {
